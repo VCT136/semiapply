@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Semiapply</title>
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <header>
+        <h1>Semiapply</h1>
+        <p>Load a job ad and a CV for context. Supported: PDF, HTML, or plain text via local file or web URL. Original files are never modified.</p>
+      </header>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Job ad</h2>
+          <form action="/load/job" method="post" enctype="multipart/form-data">
+            <label for="job_url">Web URL</label>
+            <input id="job_url" name="job_url" type="url" placeholder="https://..." />
+
+            <div class="or">or</div>
+
+            <label for="job_file">Local file</label>
+            <input id="job_file" name="job_file" type="file" accept=".pdf,.html,.htm,.txt,.text,.md,text/*,application/pdf" />
+
+            <button type="submit">Load job ad</button>
+          </form>
+          {% if job_error %}
+          <div class="error" role="alert">{{ job_error }}</div>
+          {% endif %}
+          {% if job %}
+          <div class="result">
+            <h3>Loaded</h3>
+            <dl>
+              <dt>Source</dt><dd>{{ job.source }}</dd>
+              <dt>Type</dt><dd>{{ job.kind }}</dd>
+            </dl>
+            <label for="job_text">Extracted text</label>
+            <textarea id="job_text" readonly rows="18">{{ job.text }}</textarea>
+          </div>
+          {% endif %}
+        </article>
+
+        <article class="card">
+          <h2>CV</h2>
+          <form action="/load/cv" method="post" enctype="multipart/form-data">
+            <label for="cv_url">Web URL</label>
+            <input id="cv_url" name="cv_url" type="url" placeholder="https://..." />
+
+            <div class="or">or</div>
+
+            <label for="cv_file">Local file</label>
+            <input id="cv_file" name="cv_file" type="file" accept=".pdf,.html,.htm,.txt,.text,.md,text/*,application/pdf" />
+
+            <button type="submit">Load CV</button>
+          </form>
+          {% if cv_error %}
+          <div class="error" role="alert">{{ cv_error }}</div>
+          {% endif %}
+          {% if cv %}
+          <div class="result">
+            <h3>Loaded</h3>
+            <dl>
+              <dt>Source</dt><dd>{{ cv.source }}</dd>
+              <dt>Type</dt><dd>{{ cv.kind }}</dd>
+            </dl>
+            <label for="cv_text">Extracted text</label>
+            <textarea id="cv_text" readonly rows="18">{{ cv.text }}</textarea>
+          </div>
+          {% endif %}
+        </article>
+      </section>
+
+      <footer>
+        <p>BL-001 scaffold: document loading context. Generation and chat features are planned in the backlog.</p>
+      </footer>
+    </main>
+  </body>
+</html>

@@ -6,7 +6,8 @@
 - **Description:** Allow the user to load a job ad and a CV to provide context for application assistance.
 - **Accepted inputs:** PDF, HTML, or plain text.
 - **Sources:** Web URL or local file.
-- **Status:** Backlog
+- **Status:** In Progress (DEV-001)
+
 
 ### BL-002: Load writing samples for style reference
 - **Description:** Allow the user to load writing samples (e.g., motivation/cover letters) as a reference for the applicant’s writing style.

@@ -1,0 +1,39 @@
+# Semiapply
+
+A web tool to help find a job and facilitate job applications.
+
+## Current status
+Early development. See `BACKLOG.md`, `TODO.md`, and `DONE.md`.
+
+## Features (planned / in progress)
+- **BL-001 (In Progress):** Load a job ad and CV for context from a local file or web URL (PDF, HTML, or text).
+- **BL-002:** Load writing samples (e.g., motivation letters) for style reference.
+- **BL-003:** Generate a customized CV and optional motivation letter tailored to a job ad (accurate; no fabrication; may omit irrelevant content). Generated files are saved as new text files; originals remain unchanged.
+- **BL-004:** Chat UI for requesting revisions and improving generated content.
+
+## Tech stack
+- Python 3.10+
+- FastAPI + Jinja2 web UI
+- OpenCode CLI integration for generation/revisions (planned): uses installed `opencode`, with model selection in the app.
+
+## Run (Windows)
+```bat
+run.bat
+```
+This creates `.venv` if needed, installs dependencies (`pip install -e .`), and starts the app.
+
+## Manual setup/run
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e .
+python -m uvicorn app.main:app --reload
+```
+Then open http://127.0.0.1:8000/
+
+
+
+## Development notes
+- Document loading supports local files and URL fetch/extraction for PDF, HTML, and plain text.
+- Original user files are never modified by the program.
+- Generated outputs (future) will be saved to a user-chosen folder as new text files.
