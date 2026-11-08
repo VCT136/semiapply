@@ -6,13 +6,14 @@
 - **Description:** Allow the user to load a job ad and a CV to provide context for application assistance.
 - **Accepted inputs:** PDF, HTML, or plain text.
 - **Sources:** Web URL or local file.
-- **Status:** In Progress (DEV-001)
+- **Status:** Done (DEV-001)
+
 
 
 ### BL-002: Load writing samples for style reference
 - **Description:** Allow the user to load writing samples (e.g., motivation/cover letters) as a reference for the applicant’s writing style.
 - **Accepted inputs:** Same formats as other supported files (PDF, HTML, or plain text).
-- **Sources:** Web URL or local file.
+- **Sources:** Web URL(s) or a local folder containing the files (the app loads all supported files from the folder), instead of selecting files individually.
 - **Status:** Backlog
 
 ### BL-003: Generate customized CV and optional motivation letter
