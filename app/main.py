@@ -63,6 +63,11 @@ def _render_index(
     return response
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request):
     sid, set_cookie = _get_session_id(request)
