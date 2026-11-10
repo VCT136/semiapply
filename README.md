@@ -2,6 +2,11 @@
 
 A web tool to help find a job and facilitate job applications.
 
+## Deployment / Usage model
+- **Local-only:** Semiapply is intended to run locally on the user's machine (see run instructions below). It is not designed as a hosted multi-user service.
+- **Local OpenCode integration:** Where AI features are needed (e.g., generation and revisions), Semiapply is planned to use the locally installed `opencode` CLI with model selection in the app. No external API keys need to be managed by a hosted backend.
+- **Local filesystem access:** Because it runs locally, the app can reference local files and folders by path (and use local system dialogs) without requiring file uploads where not necessary.
+
 ## Current status
 Early development. See `BACKLOG.md`, `TODO.md`, and `DONE.md`.
 

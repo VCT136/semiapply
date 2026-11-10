@@ -3,6 +3,8 @@
 ## Purpose
 Loads a job ad, a CV, and writing samples into the application as context for later generation and revision features.
 
+**Local-only design:** Semiapply runs locally on the user's machine and uses the local `opencode` installation for AI features where necessary. The app prefers local filesystem references (paths/folder selection) over uploading file contents.
+
 ## Supported inputs
 - **Formats:** PDF (`.pdf`), HTML (`.html`, `.htm`), plain text (`.txt`, `.text`, `.md` and other text content).
 - **Sources:** Local file upload, web URL (`http`/`https`), or a local folder (for writing samples).
