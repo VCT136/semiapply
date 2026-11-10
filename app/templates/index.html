@@ -133,8 +133,194 @@
         </article>
       </section>
 
+      <section class="grid">
+        <article class="card">
+          <h2>Generate tailored documents (BL-003)</h2>
+          <p>Generate a customized CV and/or motivation letter using the locally installed <code>opencode</code> CLI. When both are requested, they are generated separately with separate prompts. Outputs are saved as new text files; originals are never modified.</p>
+          <form id="generate-form" action="/generate/start" method="post">
+            <label for="model">Model</label>
+            {% if models and models|length > 0 %}
+            <select id="model" name="model">
+              <option value="">Select a model...</option>
+              {% for m in models %}
+              <option value="{{ m }}">{{ m }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
+            <input id="model" name="model" type="text" placeholder="provider/model (run 'opencode models' to list)" />
+            <p class="hint">No models were detected automatically. Enter a model ID in the format <code>provider/model</code>.</p>
+            {% endif %}
+
+            <label for="output_dir">Output folder (new files will be saved here)</label>
+            <div class="row">
+              <input id="output_dir" name="output_dir" type="text" placeholder="C:\\path\\to\\output" />
+              <button type="button" id="pick_output_btn">Select folder...</button>
+            </div>
+
+            <fieldset class="checks">
+              <legend>Documents to generate</legend>
+              <label><input type="checkbox" id="generate_cv" name="generate_cv" value="1" checked /> Customized CV</label>
+              <label><input type="checkbox" id="generate_letter" name="generate_letter" value="1" /> Motivation letter</label>
+            </fieldset>
+
+            <p class="hint">Requires a loaded job ad and CV. Writing samples are used as style reference when available. Context is read from cached files in a local workspace (the model may use tools/intermediate steps), but each request must return only the final document text. Each requested document is generated separately and may take a while.</p>
+            <button type="submit" id="generate_btn">Generate</button>
+          </form>
+
+          <div id="generate-progress" class="progress-box{% if not generation_job or generation_job.status == 'idle' %} hidden{% endif %}" aria-live="polite">
+            <strong>Generation progress</strong>
+            <div id="generate-status-text" class="hint">{{ generation_job.message if generation_job else '' }}</div>
+            <ul id="generate-steps" class="steps">
+              {% if generation_job and generation_job.steps %}
+                {% for step in generation_job.steps %}
+                <li>{{ step }}</li>
+                {% endfor %}
+              {% endif %}
+            </ul>
+            <label for="generate-transcript">Command-line interaction (input/output)</label>
+            <textarea id="generate-transcript" class="transcript" readonly rows="16">{{ generation_job.transcript if generation_job and generation_job.transcript else '' }}</textarea>
+          </div>
+
+          <script>
+            (function () {
+              const pickOutputBtn = document.getElementById('pick_output_btn');
+              const outputInput = document.getElementById('output_dir');
+              if (pickOutputBtn && outputInput) {
+                pickOutputBtn.addEventListener('click', async () => {
+                  try {
+                    const resp = await fetch('/pick/folder');
+                    if (resp.ok) {
+                      const data = await resp.json();
+                      if (data.path) {
+                        outputInput.value = data.path;
+                      }
+                    }
+                  } catch (e) {
+                    // ignore
+                  }
+                });
+              }
+
+              const form = document.getElementById('generate-form');
+              const btn = document.getElementById('generate_btn');
+              const box = document.getElementById('generate-progress');
+              const statusText = document.getElementById('generate-status-text');
+              const stepsList = document.getElementById('generate-steps');
+              const transcriptArea = document.getElementById('generate-transcript');
+              let polling = null;
+
+              function renderSteps(steps) {
+                if (!stepsList) return;
+                stepsList.innerHTML = '';
+                (steps || []).forEach((s) => {
+                  const li = document.createElement('li');
+                  li.textContent = s;
+                  stepsList.appendChild(li);
+                });
+              }
+
+              function setProgressVisible(visible) {
+                if (!box) return;
+                box.classList.toggle('hidden', !visible);
+              }
+
+              async function pollStatus() {
+                try {
+                  const resp = await fetch('/generate/status');
+                  if (!resp.ok) return;
+                  const data = await resp.json();
+                  setProgressVisible(data.status && data.status !== 'idle');
+                  if (statusText) statusText.textContent = data.message || '';
+                  renderSteps(data.steps || []);
+                  if (transcriptArea && typeof data.transcript === 'string') {
+                    transcriptArea.value = data.transcript;
+                    transcriptArea.scrollTop = transcriptArea.scrollHeight;
+                  }
+                  if (data.status === 'completed') {
+                    if (polling) clearInterval(polling);
+                    polling = null;
+                    if (btn) btn.disabled = false;
+                    // Reload to display generated file results from session.
+                    window.location.reload();
+                  } else if (data.status === 'error') {
+                    if (polling) clearInterval(polling);
+                    polling = null;
+                    if (btn) btn.disabled = false;
+                  } else if (data.status === 'running') {
+                    if (btn) btn.disabled = true;
+                  }
+                } catch (e) {
+                  // ignore transient polling errors
+                }
+              }
+
+              if (form) {
+                form.addEventListener('submit', async (e) => {
+                  e.preventDefault();
+                  if (btn) btn.disabled = true;
+                  setProgressVisible(true);
+                  if (statusText) statusText.textContent = 'Starting generation...';
+                  renderSteps(['Starting generation...']);
+                  if (transcriptArea) transcriptArea.value = '';
+                  try {
+                    const resp = await fetch('/generate/start', { method: 'POST', body: new FormData(form) });
+                    const data = await resp.json().catch(() => ({}));
+                    if (!resp.ok || data.status === 'error') {
+                      if (btn) btn.disabled = false;
+                      if (statusText) statusText.textContent = data.error || 'Failed to start generation.';
+                      renderSteps([data.error || 'Failed to start generation.']);
+                      return;
+                    }
+                    if (polling) clearInterval(polling);
+                    polling = setInterval(pollStatus, 1500);
+                    pollStatus();
+                  } catch (err) {
+                    if (btn) btn.disabled = false;
+                    if (statusText) statusText.textContent = 'Failed to start generation.';
+                    renderSteps(['Failed to start generation.']);
+                  }
+                });
+              }
+
+              // Resume polling if a job is already running (e.g. after navigation quirks).
+              {% if generation_job and generation_job.status == 'running' %}
+              if (btn) btn.disabled = true;
+              setProgressVisible(true);
+              polling = setInterval(pollStatus, 1500);
+              pollStatus();
+              {% endif %}
+            })();
+          </script>
+
+          {% if generate_error %}
+          <div class="error" role="alert">{{ generate_error }}</div>
+          {% endif %}
+          {% if generation %}
+          <div class="result">
+            <h3>Generated</h3>
+            <dl>
+              <dt>Model</dt><dd>{{ generation.model }}</dd>
+              {% if generation.cv_path %}
+              <dt>Customized CV</dt><dd>{{ generation.cv_path }}</dd>
+              {% endif %}
+              {% if generation.letter_path %}
+              <dt>Motivation letter</dt><dd>{{ generation.letter_path }}</dd>
+              {% endif %}
+            </dl>
+            <p class="hint">Files saved as new text files. Existing files were not modified. Each document was generated separately so the file contents can be used directly.</p>
+            <label for="generation_raw">Generated output preview (saved text)</label>
+            <textarea id="generation_raw" readonly rows="14">{{ generation.raw_output }}</textarea>
+            {% if generation.transcript %}
+            <label for="generation_transcript">Command-line interaction (all input/output)</label>
+            <textarea id="generation_transcript" class="transcript" readonly rows="18">{{ generation.transcript }}</textarea>
+            {% endif %}
+          </div>
+          {% endif %}
+        </article>
+      </section>
+
       <footer>
-        <p>Document loading context (BL-001, BL-002). Generation and chat features are planned in the backlog.</p>
+        <p>Document loading context (BL-001, BL-002) and generation (BL-003). Chat/revision UI is planned in the backlog (BL-004).</p>
       </footer>
     </main>
   </body>

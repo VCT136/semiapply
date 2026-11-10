@@ -14,3 +14,8 @@
   - Added session-backed storage for writing samples (accumulated in-memory).
   - Added UI section for writing samples with folder path or URL(s) input; displays loaded samples with source/type and extracted text.
   - Updated docs (`docs/document-loading.md`, `README.md`) and backlog tracking.
+
+- [x] **DEV-003 / BL-003:** Implemented generation of customized CV and optional motivation letter.
+  - Added `app/generator.py` to list models via `opencode models`, build a grounded prompt from loaded job/CV/samples, run `opencode run --model ...`, parse delimited output, and save new timestamped `.txt` files to a user-selected output folder (no overwrites; originals unchanged).
+  - Added `/generate` route, session-backed generation result/error handling, and UI for model selection, output folder picker, document selection, and result display.
+  - Added `docs/generation.md` and updated `README.md`, `docs/document-loading.md`, and backlog tracking.

@@ -25,7 +25,7 @@
   - Must not invent or fabricate information.
   - Generated content must be saved as new text files.
   - Existing/original files must remain unchanged by the program.
-- **Status:** Backlog
+- **Status:** Done (DEV-003)
 
 ### BL-004: Chat UI for revisions and improvements
 - **Description:** Provide a chat UI (reading area, input field, etc.) where the applicant can request revisions to generated content and improve it (e.g., by providing additional skills/career information).

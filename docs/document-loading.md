@@ -1,7 +1,7 @@
 # Document Loading (BL-001, BL-002)
 
 ## Purpose
-Loads a job ad, a CV, and writing samples into the application as context for later generation and revision features.
+Loads a job ad, a CV, and writing samples into the application as context for generation and revision features (see `docs/generation.md` for BL-003).
 
 **Local-only design:** Semiapply runs locally on the user's machine and uses the local `opencode` installation for AI features where necessary. The app prefers local filesystem references (paths/folder selection) over uploading file contents.
 
@@ -20,6 +20,7 @@ Loads a job ad, a CV, and writing samples into the application as context for la
 - Extracted text is cleaned (normalized line endings, excessive blank lines collapsed).
 - The UI displays the source, detected type, and extracted text for confirmation.
 - Loaded job/CV/writing samples are kept in an in-memory session (cookie-based) for the local app so documents remain visible while loading others.
+- Loaded context is also persisted to the local cache (`.semiapply_cache/context/` as canonical text files like `job_ad.txt`, `cv.txt`, `writing_sample_XX.txt`, plus `context_manifest.json` and `.semiapply_cache/state.json`) so it can be reused after restarting the app and read on demand by the model as an isolated workspace for generation.
 
 ## Constraints
 - Original files are never modified by the program.
