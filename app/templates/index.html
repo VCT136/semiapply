@@ -10,7 +10,7 @@
     <main class="container">
       <header>
         <h1>Semiapply</h1>
-        <p>Load a job ad and a CV for context. Supported: PDF, HTML, or plain text via local file or web URL. Original files are never modified.</p>
+        <p>Load a job ad, a CV, and writing samples for context. Supported: PDF, HTML, or plain text via local file, web URL, or a local folder (use the folder selection button). Original files are never modified.</p>
       </header>
 
       <section class="grid">
@@ -73,8 +73,68 @@
         </article>
       </section>
 
+      <section class="grid">
+        <article class="card">
+          <h2>Writing samples (style reference)</h2>
+          <p>Load motivation/cover letters or other writing samples to guide tone and style.</p>
+          <form action="/load/samples" method="post">
+            <label for="samples_folder">Local folder</label>
+            <div style="display:flex; gap:8px; align-items:center;">
+              <input id="samples_folder" name="samples_folder" type="text" placeholder="C:\\path\\to\\writing-samples" style="flex:1;" />
+              <button type="button" id="pick_folder_btn">Select folder...</button>
+            </div>
+            <p class="hint">Use the button to open the system folder selection; the selected folder path is stored and files are loaded from that path when submitting.</p>
+
+            <div class="or">or</div>
+
+            <label for="samples_urls">Web URL(s)</label>
+            <textarea id="samples_urls" name="samples_urls" rows="4" placeholder="https://example.com/letter1&#10;https://example.com/letter2"></textarea>
+
+            <button type="submit">Load writing samples</button>
+          </form>
+          <script>
+            const pickBtn = document.getElementById('pick_folder_btn');
+            const folderInput = document.getElementById('samples_folder');
+            if (pickBtn && folderInput) {
+              pickBtn.addEventListener('click', async () => {
+                try {
+                  const resp = await fetch('/pick/folder');
+                  if (resp.ok) {
+                    const data = await resp.json();
+                    if (data.path) {
+                      folderInput.value = data.path;
+                    }
+                  }
+                } catch (e) {
+                  // ignore
+                }
+              });
+            }
+          </script>
+          {% if samples_error %}
+          <div class="error" role="alert">{{ samples_error }}</div>
+          {% endif %}
+          {% if samples and samples|length > 0 %}
+          <div class="result">
+            <h3>Loaded ({{ samples|length }})</h3>
+            {% for s in samples %}
+            <div class="sample">
+              <dl>
+                <dt>Label</dt><dd>{{ s.label }}</dd>
+                <dt>Source</dt><dd>{{ s.source }}</dd>
+                <dt>Type</dt><dd>{{ s.kind }}</dd>
+              </dl>
+              <label for="sample_text_{{ loop.index }}">Extracted text</label>
+              <textarea id="sample_text_{{ loop.index }}" readonly rows="12">{{ s.text }}</textarea>
+            </div>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </article>
+      </section>
+
       <footer>
-        <p>BL-001 scaffold: document loading context. Generation and chat features are planned in the backlog.</p>
+        <p>Document loading context (BL-001, BL-002). Generation and chat features are planned in the backlog.</p>
       </footer>
     </main>
   </body>

@@ -143,3 +143,87 @@ async def load_document(
         return await _load_from_url(url, label)
     assert upload is not None
     return await _load_from_upload(upload, label)
+
+
+async def load_document_from_path(path: str | Path, label: str) -> LoadedDocument:
+    p = Path(path)
+    if not p.exists():
+        raise ValueError(f"Path does not exist: {p}")
+    if not p.is_file():
+        raise ValueError(f"Path is not a file: {p}")
+
+    ext = p.suffix.lower()
+    if ext and ext not in SUPPORTED_EXTENSIONS:
+        raise ValueError(
+            f"Unsupported file type '{ext}'. Supported: PDF, HTML, or plain text."
+        )
+
+    data = p.read_bytes()
+    if not data:
+        raise ValueError("File is empty.")
+    if len(data) > MAX_FETCH_BYTES:
+        raise ValueError(f"File exceeds {MAX_FETCH_BYTES // (1024 * 1024)} MB limit.")
+
+    kind = _kind_from_name(p.name)
+    text = _extract_text(data, kind=kind, source=str(p))
+    return LoadedDocument(
+        label=label,
+        source=f"local file: {p}",
+        filename=p.name,
+        kind=kind,
+        text=text,
+    )
+
+
+async def load_documents_from_folder(folder_path: str | Path, label_prefix: str = "Writing sample") -> list[LoadedDocument]:
+    p = Path(folder_path)
+    if not p.exists():
+        raise ValueError(f"Folder does not exist: {p}")
+    if not p.is_dir():
+        raise ValueError(f"Path is not a folder: {p}")
+
+    docs: list[LoadedDocument] = []
+    # Load all supported files in the folder (non-recursive as a simple default)
+    for entry in sorted(p.iterdir()):
+        if entry.is_file():
+            ext = entry.suffix.lower()
+            if ext in SUPPORTED_EXTENSIONS:
+                try:
+                    doc = await load_document_from_path(entry, label=f"{label_prefix}: {entry.name}")
+                    docs.append(doc)
+                except Exception:
+                    # Skip files that fail to load/extract; continue with others
+                    continue
+    if not docs:
+        raise ValueError("No supported readable files found in the folder.")
+    return docs
+
+async def load_documents_from_uploads(uploads: list[UploadFile], label_prefix: str = "Writing sample") -> list[LoadedDocument]:
+    docs: list[LoadedDocument] = []
+    for idx, upload in enumerate(uploads, start=1):
+        if not upload or not upload.filename:
+            continue
+        try:
+            doc = await _load_from_upload(upload, label=f"{label_prefix}: {Path(upload.filename).name}")
+            docs.append(doc)
+        except Exception:
+            continue
+    if not docs:
+        raise ValueError("No supported readable files could be loaded from the selected folder/files.")
+    return docs
+
+async def load_documents_from_urls(urls: list[str], label_prefix: str = "Writing sample") -> list[LoadedDocument]:
+    docs: list[LoadedDocument] = []
+    for idx, url in enumerate(urls, start=1):
+        url_clean = (url or "").strip()
+        if not url_clean:
+            continue
+        try:
+            doc = await _load_from_url(url_clean, label=f"{label_prefix} {idx}")
+            docs.append(doc)
+        except Exception:
+            continue
+    if not docs:
+        raise ValueError("No valid writing samples could be loaded from the provided URL(s).")
+    return docs
+

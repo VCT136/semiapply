@@ -14,7 +14,7 @@
 - **Description:** Allow the user to load writing samples (e.g., motivation/cover letters) as a reference for the applicant’s writing style.
 - **Accepted inputs:** Same formats as other supported files (PDF, HTML, or plain text).
 - **Sources:** Web URL(s) or a local folder containing the files (the app loads all supported files from the folder), instead of selecting files individually.
-- **Status:** Backlog
+- **Status:** Done (DEV-002)
 
 ### BL-003: Generate customized CV and optional motivation letter
 - **Description:** Generate a customized version of the CV, and optionally a motivation letter, tailored to the job ad while accurately reflecting the applicant’s experience.

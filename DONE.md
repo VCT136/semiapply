@@ -8,3 +8,9 @@
   - Displays loaded source/type and extracted text for confirmation (readonly text areas).
   - Session-backed in-memory context keeps both documents visible; originals never modified.
   - Docs: `README.md`, `docs/document-loading.md`.
+
+- [x] **DEV-002 / BL-002:** Implemented loading of writing samples for style reference.
+  - Extended loaders to support loading all supported files from a local folder and loading from multiple web URLs.
+  - Added session-backed storage for writing samples (accumulated in-memory).
+  - Added UI section for writing samples with folder path or URL(s) input; displays loaded samples with source/type and extracted text.
+  - Updated docs (`docs/document-loading.md`, `README.md`) and backlog tracking.

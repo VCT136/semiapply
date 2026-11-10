@@ -5,9 +5,9 @@ A web tool to help find a job and facilitate job applications.
 ## Current status
 Early development. See `BACKLOG.md`, `TODO.md`, and `DONE.md`.
 
-## Features (planned / in progress)
-- **BL-001 (In Progress):** Load a job ad and CV for context from a local file or web URL (PDF, HTML, or text).
-- **BL-002:** Load writing samples (e.g., motivation letters) for style reference.
+## Features (in progress / planned)
+- **BL-001 (Done):** Load a job ad and CV for context from a local file or web URL (PDF, HTML, or text).
+- **BL-002 (Done):** Load writing samples (e.g., motivation/cover letters) for style reference from a local folder or web URL(s) (PDF, HTML, or text).
 - **BL-003:** Generate a customized CV and optional motivation letter tailored to a job ad (accurate; no fabrication; may omit irrelevant content). Generated files are saved as new text files; originals remain unchanged.
 - **BL-004:** Chat UI for requesting revisions and improving generated content.
 
