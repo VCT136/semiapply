@@ -240,8 +240,8 @@
                     if (polling) clearInterval(polling);
                     polling = null;
                     if (btn) btn.disabled = false;
-                    // Reload to display generated file results from session.
-                    window.location.reload();
+                    // Navigate with GET to display generated file results from session without form-resubmission prompts.
+                    window.location.assign(window.location.pathname + window.location.search);
                   } else if (data.status === 'error') {
                     if (polling) clearInterval(polling);
                     polling = null;
