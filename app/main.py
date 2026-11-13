@@ -14,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from app.cache import load_persisted_context, save_session_context
+from app.cache import load_persisted_context, save_persisted_settings, save_session_context
 from app.generator import generate_documents, list_models
 from app.loaders import LoadedDocument, load_document, load_documents_from_folder, load_documents_from_urls
 
@@ -31,7 +31,10 @@ PERSISTED_CONTEXT: dict[str, Any] = load_persisted_context()
 
 def _default_session() -> dict[str, Any]:
     # Start from persisted context (survives restarts via local cache).
-    persisted = PERSISTED_CONTEXT or {"job": None, "cv": None, "samples": []}
+    persisted = PERSISTED_CONTEXT or {"job": None, "cv": None, "samples": [], "settings": {}}
+    settings = persisted.get("settings") or {}
+    if not isinstance(settings, dict):
+        settings = {}
     return {
         "job": persisted.get("job"),
         "cv": persisted.get("cv"),
@@ -43,6 +46,10 @@ def _default_session() -> dict[str, Any]:
             "steps": [],
             "error": None,
             "transcript": "",
+        },
+        "settings": {
+            "model": str(settings.get("model") or ""),
+            "output_dir": str(settings.get("output_dir") or ""),
         },
     }
 
@@ -93,6 +100,9 @@ def _render_index(
     models: list[str] | None = None,
 ):
     session = _ensure_session(sid)
+    settings = session.get("settings") or {}
+    if not isinstance(settings, dict):
+        settings = {}
     context = {
         "request": request,
         "job": _doc_context(session.get("job")),
@@ -105,6 +115,10 @@ def _render_index(
         "generation": session.get("generation"),
         "generation_job": session.get("generation_job"),
         "models": models if models is not None else list_models(),
+        "settings": {
+            "model": str(settings.get("model") or ""),
+            "output_dir": str(settings.get("output_dir") or ""),
+        },
     }
     response = templates.TemplateResponse(request=request, name="index.html", context=context)
     if set_cookie:
@@ -180,6 +194,12 @@ def _start_generation_job(
         "transcript": "",
     }
     session["generation"] = None
+    # Remember chosen generation settings between sessions.
+    session["settings"] = {
+        "model": model.strip(),
+        "output_dir": output_dir.strip(),
+    }
+    save_persisted_settings(model=model, output_dir=output_dir)
     # Ensure loaded context is persisted to the local cache workspace used for generation.
     save_session_context(session)
 

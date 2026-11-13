@@ -142,20 +142,26 @@
             {% if models and models|length > 0 %}
             <select id="model" name="model">
               <option value="">Select a model...</option>
+              {% set selected_model = settings.model if settings and settings.model else '' %}
+              {% if selected_model and selected_model not in models %}
+              <option value="{{ selected_model }}" selected>{{ selected_model }} (saved)</option>
+              {% endif %}
               {% for m in models %}
-              <option value="{{ m }}">{{ m }}</option>
+              <option value="{{ m }}"{% if m == selected_model %} selected{% endif %}>{{ m }}</option>
               {% endfor %}
             </select>
+            <p class="hint">The selected model is remembered between sessions.</p>
             {% else %}
-            <input id="model" name="model" type="text" placeholder="provider/model (run 'opencode models' to list)" />
-            <p class="hint">No models were detected automatically. Enter a model ID in the format <code>provider/model</code>.</p>
+            <input id="model" name="model" type="text" placeholder="provider/model (run 'opencode models' to list)" value="{{ settings.model if settings and settings.model else '' }}" />
+            <p class="hint">No models were detected automatically. Enter a model ID in the format <code>provider/model</code>. The entered model is remembered between sessions.</p>
             {% endif %}
 
             <label for="output_dir">Output folder (new files will be saved here)</label>
             <div class="row">
-              <input id="output_dir" name="output_dir" type="text" placeholder="C:\\path\\to\\output" />
+              <input id="output_dir" name="output_dir" type="text" placeholder="C:\\path\\to\\output" value="{{ settings.output_dir if settings and settings.output_dir else '' }}" />
               <button type="button" id="pick_output_btn">Select folder...</button>
             </div>
+            <p class="hint">The selected output folder is remembered between sessions.</p>
 
             <fieldset class="checks">
               <legend>Documents to generate</legend>

@@ -11,6 +11,7 @@ from app.loaders import LoadedDocument
 CACHE_DIR = Path(".semiapply_cache")
 CONTEXT_DIR = CACHE_DIR / "context"
 STATE_FILE = CACHE_DIR / "state.json"
+SETTINGS_FILE = CACHE_DIR / "settings.json"
 
 
 def ensure_cache_dirs() -> None:
@@ -55,7 +56,9 @@ def save_session_context(session: dict[str, Any]) -> dict[str, Any]:
     ensure_cache_dirs()
     _clear_generated_context_files()
 
-    state: dict[str, Any] = {"job": None, "cv": None, "samples": []}
+    # Preserve persisted generation settings when rewriting state.
+    existing_settings = load_persisted_settings()
+    state: dict[str, Any] = {"job": None, "cv": None, "samples": [], "settings": existing_settings}
     manifest: dict[str, Any] = {"job_ad": None, "cv": None, "writing_samples": []}
 
     job = session.get("job")
@@ -132,13 +135,59 @@ def _doc_from_state(data: dict[str, Any] | None) -> LoadedDocument | None:
         return None
 
 
+def load_persisted_settings() -> dict[str, str]:
+    """Load persisted generation settings (model, output folder) from cache state."""
+    if STATE_FILE.exists():
+        try:
+            state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+            settings = state.get("settings") or {}
+            if isinstance(settings, dict):
+                return {
+                    "model": str(settings.get("model") or ""),
+                    "output_dir": str(settings.get("output_dir") or ""),
+                }
+        except Exception:
+            pass
+    # Backward/alternative location
+    if SETTINGS_FILE.exists():
+        try:
+            settings = json.loads(SETTINGS_FILE.read_text(encoding="utf-8"))
+            if isinstance(settings, dict):
+                return {
+                    "model": str(settings.get("model") or ""),
+                    "output_dir": str(settings.get("output_dir") or ""),
+                }
+        except Exception:
+            pass
+    return {"model": "", "output_dir": ""}
+
+
+def save_persisted_settings(model: str = "", output_dir: str = "") -> None:
+    """Persist chosen generation model and output folder between sessions."""
+    ensure_cache_dirs()
+    settings = {
+        "model": (model or "").strip(),
+        "output_dir": (output_dir or "").strip(),
+    }
+    state: dict[str, Any] = {"job": None, "cv": None, "samples": [], "settings": settings}
+    if STATE_FILE.exists():
+        try:
+            state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
+            if not isinstance(state, dict):
+                state = {"job": None, "cv": None, "samples": []}
+        except Exception:
+            state = {"job": None, "cv": None, "samples": []}
+    state["settings"] = settings
+    STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def load_persisted_context() -> dict[str, Any]:
     if not STATE_FILE.exists():
-        return {"job": None, "cv": None, "samples": []}
+        return {"job": None, "cv": None, "samples": [], "settings": load_persisted_settings()}
     try:
         state = json.loads(STATE_FILE.read_text(encoding="utf-8"))
     except Exception:
-        return {"job": None, "cv": None, "samples": []}
+        return {"job": None, "cv": None, "samples": [], "settings": {"model": "", "output_dir": ""}}
     job = _doc_from_state(state.get("job"))
     cv = _doc_from_state(state.get("cv"))
     samples = []
@@ -146,7 +195,15 @@ def load_persisted_context() -> dict[str, Any]:
         doc = _doc_from_state(item)
         if doc:
             samples.append(doc)
-    return {"job": job, "cv": cv, "samples": samples}
+    settings = load_persisted_settings() if isinstance(state, dict) else {"model": "", "output_dir": ""}
+    if isinstance(state, dict):
+        s = state.get("settings") or {}
+        if isinstance(s, dict):
+            settings = {
+                "model": str(s.get("model") or ""),
+                "output_dir": str(s.get("output_dir") or ""),
+            }
+    return {"job": job, "cv": cv, "samples": samples, "settings": settings}
 
 
 def get_workspace_dir() -> Path:
