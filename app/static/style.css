@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Scope One";
+  src: url("/static/ScopeOne-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
   color-scheme: dark;
   --bg: #0f172a;
@@ -14,7 +22,7 @@
 * { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: Georgia, "Times New Roman", serif;
+  font-family: "Scope One", Georgia, "Times New Roman", serif;
   background: linear-gradient(180deg, #0b1220, var(--bg));
   color: var(--text);
 }
