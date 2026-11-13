@@ -325,8 +325,81 @@
         </article>
       </section>
 
+      <section class="grid">
+        <article class="card chat-card">
+          <h2>Revise generated content (BL-004)</h2>
+          <p>Request revisions to generated documents and add information (e.g., skills or career details) in chat. Revisions use the selected model and are saved as new text files in the output folder; originals and previous outputs are not modified.</p>
+
+          <form action="/chat/send" method="post" class="chat-form">
+            <div class="row">
+              <div style="flex:1;">
+                <label for="active_doc">Document to revise</label>
+                <select id="active_doc" name="active_doc">
+                  <option value="cv"{% if chat and chat.active_doc == 'cv' %} selected{% endif %}>Customized CV{% if not chat or not chat.cv_text %} (generate first){% endif %}</option>
+                  <option value="letter"{% if chat and chat.active_doc == 'letter' %} selected{% endif %}>Motivation letter{% if not chat or not chat.letter_text %} (generate first){% endif %}</option>
+                </select>
+              </div>
+            </div>
+
+            <p class="hint">Uses the model and output folder from settings/generation (you can update them in the generation section above). Each revision is grounded in loaded context and information you explicitly provide.</p>
+
+            <label for="chat_current_text">Current document (reading area)</label>
+            <textarea id="chat_current_text" readonly rows="16">{{ chat.active_text if chat else '' }}</textarea>
+            {% if chat and chat.active_path %}
+            <p class="hint">Last saved file: {{ chat.active_path }}</p>
+            {% endif %}
+
+            <div class="chat-history" aria-label="Chat history">
+              <h3>Chat</h3>
+              {% if chat and chat.messages and chat.messages|length > 0 %}
+                {% for msg in chat.messages %}
+                <div class="chat-message chat-{{ msg.role }}">
+                  <strong>{{ 'You' if msg.role == 'user' else 'Assistant' }}:</strong>
+                  <div>{{ msg.content }}</div>
+                </div>
+                {% endfor %}
+              {% else %}
+              <p class="hint">No messages yet. Ask for changes, clarifications, or provide additional skills/career information to improve the selected document.</p>
+              {% endif %}
+            </div>
+
+            <label for="chat_message">Revision request / additional information</label>
+            <textarea id="chat_message" name="message" rows="5" placeholder="e.g. Emphasize my Python and data pipeline experience, add that I led a team of 3 in 2024, and make the tone more concise."></textarea>
+            <input type="hidden" name="model" value="{{ settings.model if settings and settings.model else '' }}" />
+            <input type="hidden" name="output_dir" value="{{ settings.output_dir if settings and settings.output_dir else '' }}" />
+            <button type="submit">Send revision request</button>
+          </form>
+          <script>
+            (function () {
+              const sel = document.getElementById('active_doc');
+              if (!sel) return;
+              const texts = {
+                cv: {{ (chat.cv_text if chat else '') | tojson }},
+                letter: {{ (chat.letter_text if chat else '') | tojson }}
+              };
+              const paths = {
+                cv: {{ (chat.cv_path if chat else none) | tojson }},
+                letter: {{ (chat.letter_path if chat else none) | tojson }}
+              };
+              const area = document.getElementById('chat_current_text');
+              sel.addEventListener('change', () => {
+                const v = sel.value === 'letter' ? 'letter' : 'cv';
+                if (area) area.value = texts[v] || '';
+              });
+              // ensure initial matches selected
+              const v = sel.value === 'letter' ? 'letter' : 'cv';
+              if (area) area.value = texts[v] || '';
+            })();
+          </script>
+
+          {% if chat_error %}
+          <div class="error" role="alert">{{ chat_error }}</div>
+          {% endif %}
+        </article>
+      </section>
+
       <footer>
-        <p>Document loading context (BL-001, BL-002) and generation (BL-003). Chat/revision UI is planned in the backlog (BL-004).</p>
+        <p>Document loading context (BL-001, BL-002), generation (BL-003), and chat-based revisions (BL-004). Loaded context and settings are kept locally; generated/revised outputs are saved as new files.</p>
       </footer>
     </main>
   </body>

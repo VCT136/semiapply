@@ -16,7 +16,18 @@ from app.cache import get_context_manifest, get_workspace_dir, save_session_cont
 class GenerationResult:
     cv_path: str | None
     letter_path: str | None
+    cv_text: str | None
+    letter_text: str | None
     raw_output: str
+    model: str
+    transcript: str
+
+
+@dataclass
+class RevisionResult:
+    kind: str
+    path: str
+    text: str
     model: str
     transcript: str
 
@@ -292,6 +303,102 @@ async def _run_one(
     return cleaned, transcript
 
 
+def build_revision_prompt(kind: str, manifest: dict, current_text: str, user_request: str, chat_history: list[dict[str, str]] | None = None) -> str:
+    if kind not in {"cv", "letter"}:
+        raise ValueError(f"Unknown revision kind: {kind}")
+    doc_name = "customized CV" if kind == "cv" else "motivation/cover letter"
+    history = chat_history or []
+    history_lines: list[str] = []
+    for msg in history[-12:]:
+        role = str(msg.get("role", "user")).strip().lower()
+        content = str(msg.get("content", "")).strip()
+        if not content:
+            continue
+        label = "User" if role == "user" else "Assistant"
+        history_lines.append(f"{label}: {content}")
+
+    parts = [
+        "You are assisting a job applicant by revising application materials.",
+        "Use only information present in the provided context files (job ad, CV, writing samples) and any additional factual information explicitly provided by the user in the chat.",
+        "Do not invent or fabricate skills, dates, employers, titles, education, or achievements.",
+        "You may omit irrelevant content, but everything included must be accurate and grounded in available information.",
+        "\n## Context files (read from working directory)\n",
+        "The source materials are available as files in the current working directory (local cache workspace). Read/check them on demand as needed.",
+        _format_context_manifest(manifest or {}),
+        f"\n## Current {doc_name} (revise this)\n",
+        (current_text or "").strip(),
+    ]
+    if history_lines:
+        parts.extend(["\n## Recent chat history\n", "\n".join(history_lines)])
+    parts.extend([
+        "\n## User revision request\n",
+        (user_request or "").strip(),
+        "\n\n## Execution and output requirements\n",
+        "- You may use available tools and read files from the working directory to inspect context files. Intermediate steps are allowed.\n",
+        "- Apply the requested revision while keeping content accurate and relevant to the job ad.\n",
+        "- If the user provides additional skills/career information, incorporate it only as stated; do not embellish or invent details.\n",
+        "- However, your FINAL response must be ONLY the complete revised document text, ready to be saved and used directly.\n",
+        "- Do not include preamble, explanation, commentary, analysis, notes, tool-call JSON, or progress messages in the final response.\n",
+        "- Do not wrap the entire final output in markdown code fences.\n",
+        f"- Return the complete revised {doc_name} as the final answer.",
+    ])
+    return "\n".join(parts)
+
+
+async def revise_document(
+    *,
+    model: str,
+    output_dir: str,
+    kind: str,
+    current_text: str,
+    user_request: str,
+    chat_history: list[dict[str, str]] | None = None,
+) -> RevisionResult:
+    if kind not in {"cv", "letter"}:
+        raise ValueError("Select a valid document to revise (CV or motivation letter).")
+    if not (model or "").strip():
+        raise ValueError("Select a model.")
+    if not (output_dir or "").strip():
+        raise ValueError("Select an output folder.")
+    out_dir = Path(output_dir)
+    if not out_dir.exists() or not out_dir.is_dir():
+        raise ValueError(f"Output folder does not exist or is not a directory: {out_dir}")
+    if not (current_text or "").strip():
+        raise ValueError("No generated document text is available to revise. Generate a document first.")
+    if not (user_request or "").strip():
+        raise ValueError("Enter a revision request.")
+    opencode = shutil.which("opencode")
+    if not opencode:
+        raise ValueError("The 'opencode' CLI was not found. Install OpenCode and ensure it is on PATH.")
+
+    manifest = get_context_manifest()
+    workspace_dir = get_workspace_dir()
+    kind_label = "Customized CV revision" if kind == "cv" else "Motivation letter revision"
+    prompt = build_revision_prompt(kind, manifest, current_text, user_request, chat_history)
+
+    def _progress(_msg: str, _data: dict | None = None) -> None:
+        return None
+
+    revised_text, transcript = await _run_one(
+        opencode=opencode,
+        model=model,
+        prompt=prompt,
+        kind_label=kind_label,
+        progress=_progress,
+        cwd=workspace_dir,
+    )
+    ts = datetime.now().strftime("%Y%m%d-%H%M%S")
+    base = "customized-cv-revised" if kind == "cv" else "motivation-letter-revised"
+    written = _safe_write(out_dir / f"{base}-{ts}.txt", revised_text)
+    return RevisionResult(
+        kind=kind,
+        path=str(written),
+        text=revised_text,
+        model=model.strip(),
+        transcript=transcript,
+    )
+
+
 async def generate_documents(
     *,
     model: str,
@@ -325,6 +432,8 @@ async def generate_documents(
     ts = datetime.now().strftime("%Y%m%d-%H%M%S")
     cv_path_out: str | None = None
     letter_path_out: str | None = None
+    cv_text_result: str | None = None
+    letter_text_result: str | None = None
     outputs: list[str] = []
     transcripts: list[str] = []
 
@@ -349,6 +458,7 @@ async def generate_documents(
         transcripts.append(transcript)
         written = _safe_write(out_dir / f"customized-cv-{ts}.txt", cv_text_out)
         cv_path_out = str(written)
+        cv_text_result = cv_text_out
         outputs.append(f"=== Customized CV (saved text) ===\n{cv_text_out}")
         progress("Customized CV generated and saved.")
 
@@ -361,6 +471,7 @@ async def generate_documents(
         transcripts.append(transcript)
         written = _safe_write(out_dir / f"motivation-letter-{ts}.txt", letter_text_out)
         letter_path_out = str(written)
+        letter_text_result = letter_text_out
         outputs.append(f"=== Motivation letter (saved text) ===\n{letter_text_out}")
         progress("Motivation letter generated and saved.")
 
@@ -368,6 +479,8 @@ async def generate_documents(
     return GenerationResult(
         cv_path=cv_path_out,
         letter_path=letter_path_out,
+        cv_text=cv_text_result,
+        letter_text=letter_text_result,
         raw_output="\n\n".join(outputs).strip(),
         model=model.strip(),
         transcript="\n\n".join(transcripts).strip(),

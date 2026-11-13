@@ -10,12 +10,12 @@ from tkinter import filedialog
 from typing import Any
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from app.cache import load_persisted_context, save_persisted_settings, save_session_context
-from app.generator import generate_documents, list_models
+from app.generator import generate_documents, list_models, revise_document
 from app.loaders import LoadedDocument, load_document, load_documents_from_folder, load_documents_from_urls
 
 app = FastAPI(title="Semiapply")
@@ -47,6 +47,16 @@ def _default_session() -> dict[str, Any]:
             "error": None,
             "transcript": "",
         },
+        "chat": {
+            "messages": [],
+            "active_doc": "cv",
+            "cv_text": None,
+            "letter_text": None,
+            "cv_path": None,
+            "letter_path": None,
+            "last_model": "",
+            "error": None,
+        },
         "settings": {
             "model": str(settings.get("model") or ""),
             "output_dir": str(settings.get("output_dir") or ""),
@@ -63,7 +73,47 @@ def _ensure_session(sid: str) -> dict[str, Any]:
             session[k] = v
     if not isinstance(session.get("generation_job"), dict):
         session["generation_job"] = base["generation_job"].copy()
+    if not isinstance(session.get("chat"), dict):
+        session["chat"] = base["chat"].copy()
+    else:
+        chat_base = base["chat"]
+        for k, v in chat_base.items():
+            if k not in session["chat"]:
+                session["chat"][k] = v
+        if not isinstance(session["chat"].get("messages"), list):
+            session["chat"]["messages"] = []
     return session
+
+
+def _sync_chat_from_generation(session: dict[str, Any]) -> None:
+    gen = session.get("generation") or {}
+    chat = session.setdefault("chat", _default_session()["chat"].copy())
+    if not isinstance(chat, dict):
+        chat = _default_session()["chat"].copy()
+        session["chat"] = chat
+    cv_text = gen.get("cv_text")
+    letter_text = gen.get("letter_text")
+    if cv_text and not chat.get("cv_text"):
+        chat["cv_text"] = cv_text
+        chat["cv_path"] = gen.get("cv_path")
+    elif cv_text:
+        # keep latest generation texts available if chat hasn't diverged via revision? update when generation reruns
+        if gen.get("cv_path") and gen.get("cv_path") != chat.get("cv_path"):
+            chat["cv_text"] = cv_text
+            chat["cv_path"] = gen.get("cv_path")
+    if letter_text and not chat.get("letter_text"):
+        chat["letter_text"] = letter_text
+        chat["letter_path"] = gen.get("letter_path")
+    elif letter_text:
+        if gen.get("letter_path") and gen.get("letter_path") != chat.get("letter_path"):
+            chat["letter_text"] = letter_text
+            chat["letter_path"] = gen.get("letter_path")
+    if chat.get("active_doc") not in {"cv", "letter"}:
+        chat["active_doc"] = "cv"
+    if not chat.get("cv_text") and chat.get("letter_text"):
+        chat["active_doc"] = "letter"
+    if gen.get("model"):
+        chat["last_model"] = gen.get("model") or chat.get("last_model") or ""
 
 
 def _get_session_id(request: Request) -> tuple[str, bool]:
@@ -97,12 +147,18 @@ def _render_index(
     cv_error: str | None = None,
     samples_error: str | None = None,
     generate_error: str | None = None,
+    chat_error: str | None = None,
     models: list[str] | None = None,
 ):
     session = _ensure_session(sid)
+    _sync_chat_from_generation(session)
     settings = session.get("settings") or {}
     if not isinstance(settings, dict):
         settings = {}
+    chat = session.get("chat") or {}
+    active_doc = chat.get("active_doc") if chat.get("active_doc") in {"cv", "letter"} else "cv"
+    active_text = chat.get("cv_text") if active_doc == "cv" else chat.get("letter_text")
+    active_path = chat.get("cv_path") if active_doc == "cv" else chat.get("letter_path")
     context = {
         "request": request,
         "job": _doc_context(session.get("job")),
@@ -112,8 +168,19 @@ def _render_index(
         "cv_error": cv_error,
         "samples_error": samples_error,
         "generate_error": generate_error or (session.get("generation_job") or {}).get("error"),
+        "chat_error": chat_error or chat.get("error"),
         "generation": session.get("generation"),
         "generation_job": session.get("generation_job"),
+        "chat": {
+            "messages": chat.get("messages") or [],
+            "active_doc": active_doc,
+            "active_text": active_text or "",
+            "active_path": active_path,
+            "cv_text": chat.get("cv_text") or "",
+            "letter_text": chat.get("letter_text") or "",
+            "cv_path": chat.get("cv_path"),
+            "letter_path": chat.get("letter_path"),
+        },
         "models": models if models is not None else list_models(),
         "settings": {
             "model": str(settings.get("model") or ""),
@@ -310,6 +377,8 @@ async def generate_status(request: Request):
     sid, set_cookie = _get_session_id(request)
     session = _ensure_session(sid)
     job = session.get("generation_job") or {"status": "idle", "message": "", "steps": [], "error": None, "transcript": ""}
+    if job.get("status") == "completed":
+        _sync_chat_from_generation(session)
     payload = {
         "status": job.get("status", "idle"),
         "message": job.get("message", ""),
@@ -332,6 +401,79 @@ async def generate(request: Request):
     return _render_index(request, sid=sid, set_cookie=set_cookie, generate_error="Generation is started from the UI with progress tracking. Please use the Generate button.")
 
 
+@app.get("/generate")
+async def generate_get():
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.post("/chat/send", response_class=HTMLResponse)
+async def chat_send(
+    request: Request,
+    message: str = Form(default=""),
+    active_doc: str = Form(default="cv"),
+    model: str = Form(default=""),
+    output_dir: str = Form(default=""),
+):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    _sync_chat_from_generation(session)
+    chat = session.get("chat") or {}
+    chat["error"] = None
+    doc = "letter" if (active_doc or "").strip().lower() == "letter" else "cv"
+    chat["active_doc"] = doc
+    settings = session.get("settings") or {}
+    model_sel = (model or settings.get("model") or chat.get("last_model") or "").strip()
+    out_dir_sel = (output_dir or settings.get("output_dir") or "").strip()
+    msg = (message or "").strip()
+    try:
+        if not msg:
+            raise ValueError("Enter a message to request a revision.")
+        current_text = chat.get("cv_text") if doc == "cv" else chat.get("letter_text")
+        if not (current_text or "").strip():
+            raise ValueError("Generate the selected document first before requesting revisions.")
+        # Persist remembered settings if provided.
+        if model_sel or out_dir_sel:
+            session["settings"] = {
+                "model": model_sel or str(settings.get("model") or ""),
+                "output_dir": out_dir_sel or str(settings.get("output_dir") or ""),
+            }
+            save_persisted_settings(model=session["settings"]["model"], output_dir=session["settings"]["output_dir"])
+        history = list(chat.get("messages") or [])
+        result = await revise_document(
+            model=model_sel,
+            output_dir=out_dir_sel,
+            kind=doc,
+            current_text=str(current_text),
+            user_request=msg,
+            chat_history=history,
+        )
+        history.append({"role": "user", "content": msg})
+        doc_label = "Customized CV" if doc == "cv" else "Motivation letter"
+        history.append({"role": "assistant", "content": f"Revised {doc_label} saved to: {result.path}"})
+        chat["messages"] = history[-40:]
+        if doc == "cv":
+            chat["cv_text"] = result.text
+            chat["cv_path"] = result.path
+        else:
+            chat["letter_text"] = result.text
+            chat["letter_path"] = result.path
+        chat["last_model"] = result.model
+        chat["error"] = None
+    except Exception as exc:  # noqa: BLE001
+        chat["error"] = str(exc)
+    return _render_index(request, sid=sid, set_cookie=set_cookie)
+
+
+@app.get("/chat/send")
+async def chat_send_get():
+    return RedirectResponse(url="/", status_code=303)
+
+
+@app.get("/load/job")
+async def load_job_get():
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/load/job", response_class=HTMLResponse)
 async def load_job(
     request: Request,
@@ -348,6 +490,11 @@ async def load_job(
         return _render_index(request, sid=sid, set_cookie=set_cookie, job_error=str(exc))
 
 
+@app.get("/load/cv")
+async def load_cv_get():
+    return RedirectResponse(url="/", status_code=303)
+
+
 @app.post("/load/cv", response_class=HTMLResponse)
 async def load_cv(
     request: Request,
@@ -362,6 +509,11 @@ async def load_cv(
         return _render_index(request, sid=sid, set_cookie=set_cookie)
     except Exception as exc:  # noqa: BLE001 - show user-facing load errors
         return _render_index(request, sid=sid, set_cookie=set_cookie, cv_error=str(exc))
+
+
+@app.get("/load/samples")
+async def load_samples_get():
+    return RedirectResponse(url="/", status_code=303)
 
 
 @app.post("/load/samples", response_class=HTMLResponse)

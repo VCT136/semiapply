@@ -36,6 +36,9 @@ Generates a customized CV and/or motivation letter tailored to a loaded job ad, 
 - Output is plain text (formatting/layout tailored to specific file formats like PDF/DOCX is out of scope for this item).
 - Progress is session-scoped and in-memory (local single-user app), while loaded context is persisted in `.semiapply_cache/` for reuse across restarts. The cache is a local workspace aid and may contain extracted text from loaded documents.
 
+## Related
+- See `docs/chat.md` for requesting revisions to generated documents (BL-004).
+
 ## Implementation
 - `app/generator.py`: model listing, per-document prompt construction, `opencode run` invocation, output cleanup, and safe file saving (with progress callbacks).
 - `app/main.py`: `/generate/start` and `/generate/status` endpoints, background job/progress tracking, and session-backed generation result/error handling.

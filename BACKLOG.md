@@ -29,4 +29,4 @@
 
 ### BL-004: Chat UI for revisions and improvements
 - **Description:** Provide a chat UI (reading area, input field, etc.) where the applicant can request revisions to generated content and improve it (e.g., by providing additional skills/career information).
-- **Status:** Backlog
+- **Status:** Done (DEV-004)

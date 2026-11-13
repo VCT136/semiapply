@@ -1,6 +1,11 @@
 # DONE
 
 ## Completed
+- [x] **DEV-004 / BL-004:** Implemented chat UI for revisions and improvements to generated content.
+  - Added `revise_document(...)` and revision prompt building in `app/generator.py` to run `opencode` against the cached context workspace and save each revision as a new timestamped `.txt` file.
+  - Extended session/UI state in `app/main.py` with chat history and active document working text, synchronized from generation results, and added `/chat/send` for revision requests.
+  - Added chat/revision UI (document selector, reading area, chat history, input) in `app/templates/index.html` and styles in `app/static/style.css`.
+  - Added `docs/chat.md` and updated `README.md`, `docs/document-loading.md`, `docs/generation.md`, and backlog tracking.
 - [x] **DEV-001 / BL-001:** Scaffolded Python + FastAPI web app and implemented loading of job ad and CV for context.
   - Project structure/dependencies (`pyproject.toml`), app package, Windows `run.bat`.
   - Basic web UI for URL/local file input (separate Job ad and CV sections).

@@ -1,7 +1,7 @@
 # Document Loading (BL-001, BL-002)
 
 ## Purpose
-Loads a job ad, a CV, and writing samples into the application as context for generation and revision features (see `docs/generation.md` for BL-003).
+Loads a job ad, a CV, and writing samples into the application as context for generation and revision features (see `docs/generation.md` for BL-003 and `docs/chat.md` for BL-004).
 
 **Local-only design:** Semiapply runs locally on the user's machine and uses the local `opencode` installation for AI features where necessary. The app prefers local filesystem references (paths/folder selection) over uploading file contents.
 

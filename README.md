@@ -14,7 +14,7 @@ Early development. See `BACKLOG.md`, `TODO.md`, and `DONE.md`.
 - **BL-001 (Done):** Load a job ad and CV for context from a local file or web URL (PDF, HTML, or text).
 - **BL-002 (Done):** Load writing samples (e.g., motivation/cover letters) for style reference from a local folder or web URL(s) (PDF, HTML, or text).
 - **BL-003 (Done):** Generate a customized CV and optional motivation letter tailored to a job ad using the local `opencode` CLI with model selection. When both are requested, each is generated separately with its own prompt so outputs are directly usable. Content is instructed to be accurate (no fabrication; may omit irrelevant content). Outputs are saved as new text files in a chosen folder; originals remain unchanged. Progress is visualized in the UI.
-- **BL-004 (Backlog):** Chat UI for requesting revisions and improving generated content.
+- **BL-004 (Done):** Chat UI for requesting revisions and improving generated content (CV/motivation letter). Supports chat history, selecting the active document, and saving each revision as a new text file while keeping outputs grounded in loaded context and user-provided information.
 
 ## Tech stack
 - Python 3.10+
@@ -42,4 +42,5 @@ Then open http://127.0.0.1:8000/
 - Document loading supports local files and URL fetch/extraction for PDF, HTML, and plain text.
 - Original user files are never modified by the program.
 - Generation uses the local `opencode` CLI, generates requested documents separately (per-document prompts), runs in an isolated local cache workspace (`.semiapply_cache/`) with persisted loaded context files, allows the model to read/check those files on demand (tool use/intermediate steps permitted), requires the final response to be only the final document text, visualizes progress and full CLI input/output in the UI, and saves outputs as new timestamped text files in a user-chosen folder (never overwriting existing files).
-- See `docs/document-loading.md` and `docs/generation.md` for details.
+- Chat-based revisions use the same local `opencode`/cache workspace approach to revise the selected generated document from user requests and additional information, saving each revision as a new text file.
+- See `docs/document-loading.md`, `docs/generation.md`, and `docs/chat.md` for details.
