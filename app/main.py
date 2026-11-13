@@ -38,6 +38,8 @@ def _default_session() -> dict[str, Any]:
     return {
         "job": persisted.get("job"),
         "cv": persisted.get("cv"),
+        "job_preview": None,
+        "cv_preview": None,
         "samples": list(persisted.get("samples") or []),
         "generation": None,
         "generation_job": {
@@ -163,6 +165,8 @@ def _render_index(
         "request": request,
         "job": _doc_context(session.get("job")),
         "cv": _doc_context(session.get("cv")),
+        "job_display": _doc_display_name(session.get("job")),
+        "cv_display": _doc_display_name(session.get("cv")),
         "samples": _docs_context(session.get("samples") or []),
         "job_error": job_error,
         "cv_error": cv_error,
@@ -196,6 +200,18 @@ def _render_index(
             samesite="lax",
         )
     return response
+
+
+def _doc_display_name(doc: Any) -> str:
+    if not doc:
+        return ""
+    filename = getattr(doc, "filename", None) or (doc.get("filename") if isinstance(doc, dict) else None)
+    source = getattr(doc, "source", "") or (doc.get("source") if isinstance(doc, dict) else "")
+    name = filename or source or ""
+    if name.startswith("local file: "):
+        name = name[len("local file: ") :]
+    name = str(name)
+    return name if len(name) <= 40 else name[:37] + "..."
 
 
 @app.get("/health")
@@ -490,6 +506,67 @@ async def load_job(
         return _render_index(request, sid=sid, set_cookie=set_cookie, job_error=str(exc))
 
 
+@app.post("/load/job/preview")
+async def load_job_preview(
+    request: Request,
+    job_url: str = Form(default=""),
+    job_file: UploadFile | None = File(default=None),
+):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    try:
+        doc = await load_document(url=job_url, upload=job_file, label="Job ad")
+        session["job_preview"] = doc
+        payload = {"ok": True, "doc": asdict(doc), "display_name": _doc_display_name(doc)}
+        resp = JSONResponse(payload)
+    except Exception as exc:  # noqa: BLE001
+        resp = JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/load/job/confirm")
+async def load_job_confirm(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    preview = session.get("job_preview")
+    if preview is None:
+        resp = JSONResponse({"ok": False, "error": "No preview to confirm."}, status_code=400)
+    else:
+        session["job"] = preview
+        session["job_preview"] = None
+        save_session_context(session)
+        resp = JSONResponse({"ok": True, "doc": _doc_context(session["job"]), "display_name": _doc_display_name(session["job"])})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/load/job/cancel")
+async def load_job_cancel(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    session["job_preview"] = None
+    resp = JSONResponse({"ok": True})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/load/job/remove")
+async def load_job_remove(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    session["job"] = None
+    session["job_preview"] = None
+    save_session_context(session)
+    resp = JSONResponse({"ok": True})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
 @app.get("/load/cv")
 async def load_cv_get():
     return RedirectResponse(url="/", status_code=303)
@@ -509,6 +586,67 @@ async def load_cv(
         return _render_index(request, sid=sid, set_cookie=set_cookie)
     except Exception as exc:  # noqa: BLE001 - show user-facing load errors
         return _render_index(request, sid=sid, set_cookie=set_cookie, cv_error=str(exc))
+
+
+@app.post("/load/cv/preview")
+async def load_cv_preview(
+    request: Request,
+    cv_url: str = Form(default=""),
+    cv_file: UploadFile | None = File(default=None),
+):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    try:
+        doc = await load_document(url=cv_url, upload=cv_file, label="CV")
+        session["cv_preview"] = doc
+        payload = {"ok": True, "doc": asdict(doc), "display_name": _doc_display_name(doc)}
+        resp = JSONResponse(payload)
+    except Exception as exc:  # noqa: BLE001
+        resp = JSONResponse({"ok": False, "error": str(exc)}, status_code=400)
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/load/cv/confirm")
+async def load_cv_confirm(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    preview = session.get("cv_preview")
+    if preview is None:
+        resp = JSONResponse({"ok": False, "error": "No preview to confirm."}, status_code=400)
+    else:
+        session["cv"] = preview
+        session["cv_preview"] = None
+        save_session_context(session)
+        resp = JSONResponse({"ok": True, "doc": _doc_context(session["cv"]), "display_name": _doc_display_name(session["cv"])})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/load/cv/cancel")
+async def load_cv_cancel(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    session["cv_preview"] = None
+    resp = JSONResponse({"ok": True})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
+
+
+@app.post("/load/cv/remove")
+async def load_cv_remove(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    session["cv"] = None
+    session["cv_preview"] = None
+    save_session_context(session)
+    resp = JSONResponse({"ok": True})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
 
 
 @app.get("/load/samples")

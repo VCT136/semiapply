@@ -58,6 +58,21 @@ button {
   cursor: pointer;
 }
 button:hover { background: var(--accent-hover); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.secondary { background: #e7e5e4; color: var(--text); border: 1px solid var(--border); }
+button.secondary:hover { background: #d6d3d1; }
+button.danger { background: #b91c1c; }
+button.danger:hover { background: #991b1b; }
+.doc-btn { width: 100%; font-size: 1rem; padding: 14px; }
+.doc-btn.loaded { background: #1d4ed8; }
+.doc-btn.loaded:hover { background: #1e40af; }
+
+.modal { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+.modal.hidden { display: none; }
+.modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; width: 100%; max-width: 560px; max-height: 90vh; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+.modal-content.modal-large { max-width: 800px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+.modal .row { margin-top: 4px; }
 .or { color: var(--muted); font-size: 0.9rem; text-align: center; }
 .error {
   margin-top: 12px;
