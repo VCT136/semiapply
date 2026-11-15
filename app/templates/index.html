@@ -20,6 +20,7 @@
           <div class="doc-btn-group">
             <button type="button" id="cv_doc_btn" class="doc-btn{% if cv %} loaded{% endif %}" data-doc="cv">
               <span class="doc-btn-title">CV</span>
+              <span class="doc-badge doc-badge-required{% if cv %} hidden{% endif %}">Required</span>
               <span class="doc-btn-filename{% if not cv %} hidden{% endif %}" id="cv_doc_filename">{% if cv %}{{ cv_display or '' }}{% endif %}</span>
               <span class="doc-btn-status" id="cv_status">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</span>
             </button>
@@ -116,6 +117,7 @@
           <h2>Your next job</h2>
           <button type="button" id="job_doc_btn" class="doc-btn{% if job %} loaded{% endif %}" data-doc="job">
             <span class="doc-btn-title">Job ad</span>
+            <span class="doc-badge doc-badge-required{% if job %} hidden{% endif %}">Required</span>
             <span class="doc-btn-filename{% if not job %} hidden{% endif %}" id="job_doc_filename">{% if job %}{{ job_display or '' }}{% endif %}</span>
             <span class="doc-btn-status" id="job_status">{% if job %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</span>
           </button>
@@ -460,6 +462,7 @@
           const docBtn = qs('#'+type+'_doc_btn');
           const status = qs('#'+type+'_status');
           const filenameEl = qs('#'+type+'_doc_filename');
+          const badge = docBtn ? docBtn.querySelector('.doc-badge-required') : null;
           const loadModal = type+'_load_modal';
           const previewModal = type+'_preview_modal';
           const removeModal = type+'_remove_modal';
@@ -469,12 +472,14 @@
             const name = display || '';
             currentDisplay = name;
             if(docBtn){ docBtn.classList.add('loaded'); }
+            if(badge){ badge.classList.add('hidden'); }
             if(filenameEl){ filenameEl.textContent = name; filenameEl.classList.toggle('hidden', !name); }
             if(status){ status.textContent = 'Loaded. Click to manage.'; }
           }
           function setUnloaded(){
             currentDisplay = '';
             if(docBtn){ docBtn.classList.remove('loaded'); }
+            if(badge){ badge.classList.remove('hidden'); }
             if(filenameEl){ filenameEl.textContent = ''; filenameEl.classList.add('hidden'); }
             if(status){ status.textContent = 'No document loaded.'; }
           }

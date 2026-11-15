@@ -156,6 +156,23 @@ button.danger:hover {
   color: var(--muted);
   font-weight: 400;
 }
+.doc-badge {
+  font-size: 0.75rem;
+  line-height: 1.2;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.doc-badge-required {
+  color: var(--error-text);
+  background: var(--error-bg);
+  border: 1px solid var(--error-border);
+}
+.doc-btn.loaded .doc-badge-required {
+  display: none;
+}
 .doc-btn.loaded {
   border-color: var(--doc-loaded);
   box-shadow: inset 8px 8px 20px var(--doc-loaded), inset -8px -8px 20px var(--doc-loaded);
