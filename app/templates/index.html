@@ -17,11 +17,12 @@
       <section class="grid">
         <article class="card">
           <h2>You</h2>
-          <button type="button" id="cv_doc_btn" class="doc-btn{% if cv %} loaded{% endif %}" data-doc="cv">
-            <span class="doc-btn-title">CV</span>
-            <span class="doc-btn-filename{% if not cv %} hidden{% endif %}" id="cv_doc_filename">{% if cv %}{{ cv_display or '' }}{% endif %}</span>
-            <span class="doc-btn-status" id="cv_status">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</span>
-          </button>
+          <div class="doc-btn-group">
+            <button type="button" id="cv_doc_btn" class="doc-btn{% if cv %} loaded{% endif %}" data-doc="cv">
+              <span class="doc-btn-title">CV</span>
+              <span class="doc-btn-filename{% if not cv %} hidden{% endif %}" id="cv_doc_filename">{% if cv %}{{ cv_display or '' }}{% endif %}</span>
+              <span class="doc-btn-status" id="cv_status">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</span>
+            </button>
 
           <div id="cv_load_modal" class="modal hidden" aria-hidden="true">
             <div class="modal-content">
@@ -67,6 +68,46 @@
               </div>
             </div>
           </div>
+
+          {% set samples_count = samples|length if samples else 0 %}
+            <button type="button" id="samples_doc_btn" class="doc-btn{% if samples_count > 0 %} loaded{% endif %}" data-doc="samples">
+              <span class="doc-btn-title">Writing samples</span>
+              <span class="doc-btn-filename{% if samples_count == 0 %} hidden{% endif %}" id="samples_doc_info">{% if samples_count > 0 %}{{ samples_count }} sample(s) loaded{% endif %}</span>
+              <span class="doc-btn-status" id="samples_status">{% if samples_count > 0 %}Loaded. Click to manage.{% else %}No writing samples loaded.{% endif %}</span>
+            </button>
+          </div>
+
+          <div id="samples_modal" class="modal hidden" aria-hidden="true">
+            <div class="modal-content">
+              <h3>Writing samples</h3>
+              <p class="hint">Load motivation/cover letters or other writing samples to guide tone and style. Loading replaces any currently loaded samples.</p>
+              <p class="hint{% if samples_count == 0 %} hidden{% endif %}" id="samples_current_info">{% if samples_count > 0 %}Currently loaded: {{ samples_count }} sample(s).{% endif %}</p>
+
+              <label>Local folder</label>
+              <div>
+                <button type="button" id="pick_folder_btn">Select folder...</button>
+              </div>
+              <p class="hint">Selecting a folder loads its writing samples immediately (replacing current samples).</p>
+
+              <div class="or">or</div>
+
+              <label for="samples_urls">Web URL(s)</label>
+              <textarea id="samples_urls" name="samples_urls" rows="4" placeholder="https://example.com/letter1&#10;https://example.com/letter2"></textarea>
+              <p class="hint">Separate multiple URLs with new lines, commas, or spaces.</p>
+              <div>
+                <button type="button" id="samples_load_btn">Load URL(s)</button>
+              </div>
+
+              <div id="samples_error" class="error hidden" role="alert"></div>
+              <div class="modal-actions">
+                <button type="button" id="samples_remove_btn" class="danger{% if samples_count == 0 %} hidden{% endif %}">Remove loaded samples</button>
+                <button type="button" class="secondary" data-close="samples_modal">Close</button>
+              </div>
+            </div>
+          </div>
+          {% if samples_error %}
+          <div class="error" role="alert">{{ samples_error }}</div>
+          {% endif %}
         </article>
       </section>
 
@@ -125,50 +166,6 @@
           </div>
         </article>
 
-      </section>
-
-      <section class="grid">
-        <article class="card">
-          <h2>Writing samples (style reference)</h2>
-          {% set samples_count = samples|length if samples else 0 %}
-          <button type="button" id="samples_doc_btn" class="doc-btn{% if samples_count > 0 %} loaded{% endif %}" data-doc="samples">
-            <span class="doc-btn-title">Writing samples</span>
-            <span class="doc-btn-filename{% if samples_count == 0 %} hidden{% endif %}" id="samples_doc_info">{% if samples_count > 0 %}{{ samples_count }} sample(s) loaded{% endif %}</span>
-            <span class="doc-btn-status" id="samples_status">{% if samples_count > 0 %}Loaded. Click to manage.{% else %}No writing samples loaded.{% endif %}</span>
-          </button>
-
-          <div id="samples_modal" class="modal hidden" aria-hidden="true">
-            <div class="modal-content">
-              <h3>Writing samples</h3>
-              <p class="hint">Load motivation/cover letters or other writing samples to guide tone and style. Loading replaces any currently loaded samples.</p>
-              <p class="hint{% if samples_count == 0 %} hidden{% endif %}" id="samples_current_info">{% if samples_count > 0 %}Currently loaded: {{ samples_count }} sample(s).{% endif %}</p>
-
-              <label>Local folder</label>
-              <div>
-                <button type="button" id="pick_folder_btn">Select folder...</button>
-              </div>
-              <p class="hint">Selecting a folder loads its writing samples immediately (replacing current samples).</p>
-
-              <div class="or">or</div>
-
-              <label for="samples_urls">Web URL(s)</label>
-              <textarea id="samples_urls" name="samples_urls" rows="4" placeholder="https://example.com/letter1&#10;https://example.com/letter2"></textarea>
-              <p class="hint">Separate multiple URLs with new lines, commas, or spaces.</p>
-              <div>
-                <button type="button" id="samples_load_btn">Load URL(s)</button>
-              </div>
-
-              <div id="samples_error" class="error hidden" role="alert"></div>
-              <div class="modal-actions">
-                <button type="button" id="samples_remove_btn" class="danger{% if samples_count == 0 %} hidden{% endif %}">Remove loaded samples</button>
-                <button type="button" class="secondary" data-close="samples_modal">Close</button>
-              </div>
-            </div>
-          </div>
-          {% if samples_error %}
-          <div class="error" role="alert">{{ samples_error }}</div>
-          {% endif %}
-        </article>
       </section>
 
       <section class="grid">
