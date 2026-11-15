@@ -414,7 +414,12 @@ async def generate(request: Request):
     # Fallback for non-JS form posts: redirect-like behavior by starting job is complex;
     # keep endpoint simple by instructing use of UI. Show current state.
     sid, set_cookie = _get_session_id(request)
-    return _render_index(request, sid=sid, set_cookie=set_cookie, generate_error="Generation is started from the UI with progress tracking. Please use the Generate button.")
+    return _render_index(
+        request,
+        sid=sid,
+        set_cookie=set_cookie,
+        generate_error="Generation is started from the UI with progress tracking. Please use the generation buttons.",
+    )
 
 
 @app.get("/generate")

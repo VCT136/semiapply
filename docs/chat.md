@@ -18,7 +18,7 @@ Provides a chat UI for requesting revisions to generated application documents a
   - chat history (user requests and assistant confirmations),
   - an input field to request revisions or provide additional information.
 - The active document text is initialized from the latest generated results in the session and updated after each successful revision.
-- Revisions use the remembered model/output folder settings (configurable in the generation section). The model may read cached context files from the local workspace on demand; the final response must be only the complete revised document text.
+- Revisions use the remembered model/output folder settings (configurable in the "Generate application documents" section). The model may read cached context files from the local workspace on demand; the final response must be only the complete revised document text.
 - Chat history and current revised document texts are kept in the in-memory session (local single-user app). Revised files are written to the chosen output folder.
 
 ## Limitations / notes

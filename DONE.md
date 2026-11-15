@@ -1,6 +1,11 @@
 # DONE
 
 ## Completed
+- [x] **DEV-005 / BL-003:** Updated generation UI to use separate actions per document.
+  - Replaced document selection checkboxes and the single "Generate" button with two buttons: "Generate customized CV" and "Generate motivation letter" in `app/templates/index.html`.
+  - Updated client-side generation flow to submit the selected document type and disable both buttons while a generation job is running.
+  - Disabled generation buttons and showed a hint when required documents (job ad and CV) are missing.
+  - Updated fallback messaging and documentation (`app/main.py`, `README.md`, `docs/generation.md`, `docs/chat.md`) to reflect the per-button generation flow.
 - [x] **DEV-004 / BL-004:** Implemented chat UI for revisions and improvements to generated content.
   - Added `revise_document(...)` and revision prompt building in `app/generator.py` to run `opencode` against the cached context workspace and save each revision as a new timestamped `.txt` file.
   - Extended session/UI state in `app/main.py` with chat history and active document working text, synchronized from generation results, and added `/chat/send` for revision requests.

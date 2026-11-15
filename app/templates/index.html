@@ -173,7 +173,7 @@
       <section class="grid">
         <article class="card">
           <h2>Generate application documents</h2>
-          <p>Generate a customized CV and/or motivation letter using the locally installed <b>Opencode</b> CLI. When both are requested, they are generated separately with separate prompts. Outputs are saved as new text files; originals are never modified.</p>
+          <p>Generate a customized CV or motivation letter using the locally installed <b>Opencode</b> CLI. Each document is generated separately with its own prompt. Outputs are saved as new text files; originals are never modified.</p>
           <form id="generate-form" action="/generate/start" method="post">
             <label for="model">Model</label>
             {% if models and models|length > 0 %}
@@ -200,28 +200,26 @@
             </div>
             <p class="hint">The selected output folder is remembered between sessions.</p>
 
-            <fieldset class="checks">
-              <legend>Documents to generate</legend>
-              <label><input type="checkbox" id="generate_cv" name="generate_cv" value="1" checked /> Customized CV</label>
-              <label><input type="checkbox" id="generate_letter" name="generate_letter" value="1" /> Motivation letter</label>
-            </fieldset>
-
-            <p class="hint">Requires a loaded job ad and CV. Writing samples are used as style reference when available. Context is read from cached files in a local workspace (the model may use tools/intermediate steps), but each request must return only the final document text. Each requested document is generated separately and may take a while.</p>
-            <button type="submit" id="generate_btn">Generate</button>
+            <p class="hint">Requires a loaded job ad and CV. Writing samples are used as style reference when available. Context is read from cached files in a local workspace (the model may use tools/intermediate steps), but each request must return only the final document text. Each document is generated separately and may take a while.</p>
+            {% if not cv or not job %}
+            <p class="hint error-hint" id="generate-prereq-hint" role="status">
+              {% if not cv and not job %}Required documents are missing. Load both a job ad and a CV before generating.
+              {% elif not cv %}Required documents are missing. Load a CV before generating.
+              {% else %}Required documents are missing. Load a job ad before generating.{% endif %}
+            </p>
+            {% endif %}
+            <div class="row generate-actions">
+              <button type="button" id="generate_cv_btn"{% if not cv or not job %} disabled aria-disabled="true"{% endif %}>Generate customized CV</button>
+              <button type="button" id="generate_letter_btn"{% if not cv or not job %} disabled aria-disabled="true"{% endif %}>Generate motivation letter</button>
+            </div>
           </form>
 
-          <div id="generate-progress" class="progress-box{% if not generation_job or generation_job.status == 'idle' %} hidden{% endif %}" aria-live="polite">
+          <div id="generate-progress" class="progress-box hidden" aria-live="polite">
             <strong>Generation progress</strong>
-            <div id="generate-status-text" class="hint">{{ generation_job.message if generation_job else '' }}</div>
-            <ul id="generate-steps" class="steps">
-              {% if generation_job and generation_job.steps %}
-                {% for step in generation_job.steps %}
-                <li>{{ step }}</li>
-                {% endfor %}
-              {% endif %}
-            </ul>
+            <div id="generate-status-text" class="hint"></div>
+            <ul id="generate-steps" class="steps"></ul>
             <label for="generate-transcript">Command-line interaction (input/output)</label>
-            <textarea id="generate-transcript" class="transcript" readonly rows="16">{{ generation_job.transcript if generation_job and generation_job.transcript else '' }}</textarea>
+            <textarea id="generate-transcript" class="transcript" readonly rows="16"></textarea>
           </div>
 
           <script>
@@ -245,12 +243,20 @@
               }
 
               const form = document.getElementById('generate-form');
-              const btn = document.getElementById('generate_btn');
+              const cvBtn = document.getElementById('generate_cv_btn');
+              const letterBtn = document.getElementById('generate_letter_btn');
+              const generateBtns = [cvBtn, letterBtn].filter(Boolean);
               const box = document.getElementById('generate-progress');
               const statusText = document.getElementById('generate-status-text');
               const stepsList = document.getElementById('generate-steps');
               const transcriptArea = document.getElementById('generate-transcript');
+              const canGenerate = {{ 'true' if cv and job else 'false' }};
               let polling = null;
+
+              function setButtonsDisabled(disabled) {
+                const finalDisabled = !canGenerate || !!disabled;
+                generateBtns.forEach((b) => { b.disabled = finalDisabled; });
+              }
 
               function renderSteps(steps) {
                 if (!stepsList) return;
@@ -282,52 +288,58 @@
                   if (data.status === 'completed') {
                     if (polling) clearInterval(polling);
                     polling = null;
-                    if (btn) btn.disabled = false;
+                    setButtonsDisabled(false);
                     // Navigate with GET to display generated file results from session without form-resubmission prompts.
                     window.location.assign(window.location.pathname + window.location.search);
                   } else if (data.status === 'error') {
                     if (polling) clearInterval(polling);
                     polling = null;
-                    if (btn) btn.disabled = false;
+                    setButtonsDisabled(false);
                   } else if (data.status === 'running') {
-                    if (btn) btn.disabled = true;
+                    setButtonsDisabled(true);
                   }
                 } catch (e) {
                   // ignore transient polling errors
                 }
               }
 
-              if (form) {
-                form.addEventListener('submit', async (e) => {
-                  e.preventDefault();
-                  if (btn) btn.disabled = true;
-                  setProgressVisible(true);
-                  if (statusText) statusText.textContent = 'Starting generation...';
-                  renderSteps(['Starting generation...']);
-                  if (transcriptArea) transcriptArea.value = '';
-                  try {
-                    const resp = await fetch('/generate/start', { method: 'POST', body: new FormData(form) });
-                    const data = await resp.json().catch(() => ({}));
-                    if (!resp.ok || data.status === 'error') {
-                      if (btn) btn.disabled = false;
-                      if (statusText) statusText.textContent = data.error || 'Failed to start generation.';
-                      renderSteps([data.error || 'Failed to start generation.']);
-                      return;
-                    }
-                    if (polling) clearInterval(polling);
-                    polling = setInterval(pollStatus, 1500);
-                    pollStatus();
-                  } catch (err) {
-                    if (btn) btn.disabled = false;
-                    if (statusText) statusText.textContent = 'Failed to start generation.';
-                    renderSteps(['Failed to start generation.']);
+              async function startGeneration(which) {
+                if (!form) return;
+                setButtonsDisabled(true);
+                setProgressVisible(true);
+                if (statusText) statusText.textContent = 'Starting generation...';
+                renderSteps(['Starting generation...']);
+                if (transcriptArea) transcriptArea.value = '';
+                try {
+                  const fd = new FormData(form);
+                  fd.delete('generate_cv');
+                  fd.delete('generate_letter');
+                  if (which === 'cv') fd.set('generate_cv', '1');
+                  if (which === 'letter') fd.set('generate_letter', '1');
+                  const resp = await fetch('/generate/start', { method: 'POST', body: fd });
+                  const data = await resp.json().catch(() => ({}));
+                  if (!resp.ok || data.status === 'error') {
+                    setButtonsDisabled(false);
+                    if (statusText) statusText.textContent = data.error || 'Failed to start generation.';
+                    renderSteps([data.error || 'Failed to start generation.']);
+                    return;
                   }
-                });
+                  if (polling) clearInterval(polling);
+                  polling = setInterval(pollStatus, 1500);
+                  pollStatus();
+                } catch (err) {
+                  setButtonsDisabled(false);
+                  if (statusText) statusText.textContent = 'Failed to start generation.';
+                  renderSteps(['Failed to start generation.']);
+                }
               }
+
+              if (cvBtn) cvBtn.addEventListener('click', () => startGeneration('cv'));
+              if (letterBtn) letterBtn.addEventListener('click', () => startGeneration('letter'));
 
               // Resume polling if a job is already running (e.g. after navigation quirks).
               {% if generation_job and generation_job.status == 'running' %}
-              if (btn) btn.disabled = true;
+              setButtonsDisabled(true);
               setProgressVisible(true);
               polling = setInterval(pollStatus, 1500);
               pollStatus();

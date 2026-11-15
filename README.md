@@ -13,7 +13,7 @@ Early development. See `BACKLOG.md`, `TODO.md`, and `DONE.md`.
 ## Features
 - **BL-001 (Done):** Load a job ad and CV for context from a local file or web URL (PDF, HTML, or text).
 - **BL-002 (Done):** Load writing samples (e.g., motivation/cover letters) for style reference from a local folder or web URL(s) (PDF, HTML, or text).
-- **BL-003 (Done):** Generate a customized CV and optional motivation letter tailored to a job ad using the local `opencode` CLI with model selection. When both are requested, each is generated separately with its own prompt so outputs are directly usable. Content is instructed to be accurate (no fabrication; may omit irrelevant content). Outputs are saved as new text files in a chosen folder; originals remain unchanged. Progress is visualized in the UI.
+- **BL-003 (Done):** Generate a customized CV or motivation letter tailored to a job ad using the local `opencode` CLI with model selection (separate generation actions/buttons per document). Each is generated with its own prompt so outputs are directly usable. Content is instructed to be accurate (no fabrication; may omit irrelevant content). Outputs are saved as new text files in a chosen folder; originals remain unchanged. Progress is visualized in the UI.
 - **BL-004 (Done):** Chat UI for requesting revisions and improving generated content (CV/motivation letter). Supports chat history, selecting the active document, and saving each revision as a new text file while keeping outputs grounded in loaded context and user-provided information.
 
 ## Tech stack

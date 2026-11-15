@@ -213,6 +213,7 @@ dt { color: var(--muted); }
 dd { margin: 0; word-break: break-word; }
 footer { margin-top: 20px; }
 .hint { color: var(--muted); font-size: 0.9rem; margin: 4px 0; }
+.error-hint { color: #fca5a5; }
 .row { display: flex; gap: 8px; align-items: center; }
 .row input { flex: 1; }
 .checks { border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; display: grid; gap: 4px; }
