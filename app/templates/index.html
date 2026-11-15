@@ -11,12 +11,67 @@
     <main class="container">
       <header>
         <h1>Semiapply</h1>
-        <p>Load a job ad, a CV, and writing samples for context. Supported: PDF, HTML, or plain text via local file, web URL, or a local folder (use the folder selection button). Original files are never modified.</p>
+        <p>Load a job ad, your CV, and add context to generate customized application materials, just right for the job.</p>
       </header>
 
       <section class="grid">
         <article class="card">
-          <h2>Job ad</h2>
+          <h2>You</h2>
+          <button type="button" id="cv_doc_btn" class="doc-btn {% if cv %} loaded{% endif %}" data-doc="cv">
+            {% if cv %}{{ cv_display or 'CV' }}{% else %}CV{% endif %}
+          </button>
+          <p id="cv_status" class="hint">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</p>
+
+          <div id="cv_load_modal" class="modal hidden" aria-hidden="true">
+            <div class="modal-content">
+              <h3>Load CV</h3>
+              <label for="cv_url_input">Web URL</label>
+              <div class="row">
+                <input id="cv_url_input" type="url" placeholder="https://..." />
+                <button type="button" id="cv_load_url_btn" class="secondary" disabled>Load</button>
+              </div>
+              <div class="or">or</div>
+              <label for="cv_file_input">Local file</label>
+              <input id="cv_file_input" type="file" accept=".pdf,.html,.htm,.txt,.text,.md,text/*,application/pdf" />
+              <div id="cv_load_error" class="error hidden" role="alert"></div>
+              <div class="modal-actions">
+                <button type="button" class="secondary" data-close="cv_load_modal">Close</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="cv_preview_modal" class="modal hidden" aria-hidden="true">
+            <div class="modal-content modal-large">
+              <h3>Confirm CV</h3>
+              <p class="hint" id="cv_preview_source"></p>
+              <label for="cv_preview_text">Loaded text</label>
+              <textarea id="cv_preview_text" readonly rows="16"></textarea>
+              <div id="cv_preview_error" class="error hidden" role="alert"></div>
+              <div class="modal-actions">
+                <button type="button" id="cv_preview_back" class="secondary">Back</button>
+                <button type="button" id="cv_preview_confirm">Confirm</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="cv_remove_modal" class="modal hidden" aria-hidden="true">
+            <div class="modal-content">
+              <h3>Remove CV</h3>
+              <p>Remove the loaded CV document?</p>
+              <p class="hint" id="cv_remove_name"></p>
+              <div id="cv_remove_error" class="error hidden" role="alert"></div>
+              <div class="modal-actions">
+                <button type="button" class="secondary" data-close="cv_remove_modal">Cancel</button>
+                <button type="button" id="cv_remove_confirm" class="danger">Remove</button>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <h2>Your next job</h2>
           <button type="button" id="job_doc_btn" class="doc-btn{% if job %} loaded{% endif %}" data-doc="job">
             {% if job %}{{ job_display or 'Job ad' }}{% else %}Job ad{% endif %}
           </button>
@@ -68,58 +123,6 @@
           </div>
         </article>
 
-        <article class="card">
-          <h2>CV</h2>
-          <button type="button" id="cv_doc_btn" class="doc-btn{% if cv %} loaded{% endif %}" data-doc="cv">
-            {% if cv %}{{ cv_display or 'CV' }}{% else %}CV{% endif %}
-          </button>
-          <p id="cv_status" class="hint">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</p>
-
-          <div id="cv_load_modal" class="modal hidden" aria-hidden="true">
-            <div class="modal-content">
-              <h3>Load CV</h3>
-              <label for="cv_url_input">Web URL</label>
-              <div class="row">
-                <input id="cv_url_input" type="url" placeholder="https://..." />
-                <button type="button" id="cv_load_url_btn" class="secondary" disabled>Load</button>
-              </div>
-              <div class="or">or</div>
-              <label for="cv_file_input">Local file</label>
-              <input id="cv_file_input" type="file" accept=".pdf,.html,.htm,.txt,.text,.md,text/*,application/pdf" />
-              <div id="cv_load_error" class="error hidden" role="alert"></div>
-              <div class="modal-actions">
-                <button type="button" class="secondary" data-close="cv_load_modal">Close</button>
-              </div>
-            </div>
-          </div>
-
-          <div id="cv_preview_modal" class="modal hidden" aria-hidden="true">
-            <div class="modal-content modal-large">
-              <h3>Confirm CV</h3>
-              <p class="hint" id="cv_preview_source"></p>
-              <label for="cv_preview_text">Loaded text</label>
-              <textarea id="cv_preview_text" readonly rows="16"></textarea>
-              <div id="cv_preview_error" class="error hidden" role="alert"></div>
-              <div class="modal-actions">
-                <button type="button" id="cv_preview_back" class="secondary">Back</button>
-                <button type="button" id="cv_preview_confirm">Confirm</button>
-              </div>
-            </div>
-          </div>
-
-          <div id="cv_remove_modal" class="modal hidden" aria-hidden="true">
-            <div class="modal-content">
-              <h3>Remove CV</h3>
-              <p>Remove the loaded CV document?</p>
-              <p class="hint" id="cv_remove_name"></p>
-              <div id="cv_remove_error" class="error hidden" role="alert"></div>
-              <div class="modal-actions">
-                <button type="button" class="secondary" data-close="cv_remove_modal">Cancel</button>
-                <button type="button" id="cv_remove_confirm" class="danger">Remove</button>
-              </div>
-            </div>
-          </div>
-        </article>
       </section>
 
       <section class="grid">
@@ -184,8 +187,8 @@
 
       <section class="grid">
         <article class="card">
-          <h2>Generate tailored documents (BL-003)</h2>
-          <p>Generate a customized CV and/or motivation letter using the locally installed <code>opencode</code> CLI. When both are requested, they are generated separately with separate prompts. Outputs are saved as new text files; originals are never modified.</p>
+          <h2>Generate application documents</h2>
+          <p>Generate a customized CV and/or motivation letter using the locally installed <b>Opencode</b> CLI. When both are requested, they are generated separately with separate prompts. Outputs are saved as new text files; originals are never modified.</p>
           <form id="generate-form" action="/generate/start" method="post">
             <label for="model">Model</label>
             {% if models and models|length > 0 %}
