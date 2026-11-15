@@ -17,10 +17,11 @@
       <section class="grid">
         <article class="card">
           <h2>You</h2>
-          <button type="button" id="cv_doc_btn" class="doc-btn {% if cv %} loaded{% endif %}" data-doc="cv">
-            {% if cv %}{{ cv_display or 'CV' }}{% else %}CV{% endif %}
+          <button type="button" id="cv_doc_btn" class="doc-btn{% if cv %} loaded{% endif %}" data-doc="cv">
+            <span class="doc-btn-title">CV</span>
+            <span class="doc-btn-filename{% if not cv %} hidden{% endif %}" id="cv_doc_filename">{% if cv %}{{ cv_display or '' }}{% endif %}</span>
+            <span class="doc-btn-status" id="cv_status">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</span>
           </button>
-          <p id="cv_status" class="hint">{% if cv %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</p>
 
           <div id="cv_load_modal" class="modal hidden" aria-hidden="true">
             <div class="modal-content">
@@ -73,9 +74,10 @@
         <article class="card">
           <h2>Your next job</h2>
           <button type="button" id="job_doc_btn" class="doc-btn{% if job %} loaded{% endif %}" data-doc="job">
-            {% if job %}{{ job_display or 'Job ad' }}{% else %}Job ad{% endif %}
+            <span class="doc-btn-title">Job ad</span>
+            <span class="doc-btn-filename{% if not job %} hidden{% endif %}" id="job_doc_filename">{% if job %}{{ job_display or '' }}{% endif %}</span>
+            <span class="doc-btn-status" id="job_status">{% if job %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</span>
           </button>
-          <p id="job_status" class="hint">{% if job %}Loaded. Click to manage.{% else %}No document loaded.{% endif %}</p>
 
           <div id="job_load_modal" class="modal hidden" aria-hidden="true">
             <div class="modal-content">
@@ -476,20 +478,24 @@
           const fileInput = qs('#'+type+'_file_input');
           const docBtn = qs('#'+type+'_doc_btn');
           const status = qs('#'+type+'_status');
+          const filenameEl = qs('#'+type+'_doc_filename');
           const loadModal = type+'_load_modal';
           const previewModal = type+'_preview_modal';
           const removeModal = type+'_remove_modal';
-          let currentDisplay = docBtn ? docBtn.textContent.trim() : cap;
+          let currentDisplay = filenameEl ? filenameEl.textContent.trim() : '';
 
           function setLoaded(display){
-            if(docBtn){ docBtn.textContent = display || cap; docBtn.classList.add('loaded'); }
+            const name = display || '';
+            currentDisplay = name;
+            if(docBtn){ docBtn.classList.add('loaded'); }
+            if(filenameEl){ filenameEl.textContent = name; filenameEl.classList.toggle('hidden', !name); }
             if(status){ status.textContent = 'Loaded. Click to manage.'; }
-            currentDisplay = display || cap;
           }
           function setUnloaded(){
-            if(docBtn){ docBtn.textContent = cap; docBtn.classList.remove('loaded'); }
+            currentDisplay = '';
+            if(docBtn){ docBtn.classList.remove('loaded'); }
+            if(filenameEl){ filenameEl.textContent = ''; filenameEl.classList.add('hidden'); }
             if(status){ status.textContent = 'No document loaded.'; }
-            currentDisplay = cap;
           }
 
           function updateUrlBtn(){

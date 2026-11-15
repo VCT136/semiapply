@@ -12,8 +12,10 @@ Loads a job ad, a CV, and writing samples into the application as context for ge
 ## Behavior
 
 ### Job ad and CV
-- The web UI provides separate sections for the **Job ad** and **CV**, each represented by a single button.
-- **No document loaded:** the button label shows the document type (`Job ad` / `CV`).
+- The web UI provides separate sections for the **Job ad** and **CV**, each represented by a single button with integrated status text.
+- **No document loaded:** the button shows:
+  - 1st line: document type/title (`CV` or `Job ad`)
+  - 2nd line: status message (e.g. `No document loaded.`)
   - Clicking the button opens a modal with:
     - a **Web URL** input and a **Load** button next to it, and
     - a **Local file** picker below.
@@ -22,8 +24,11 @@ Loads a job ad, a CV, and writing samples into the application as context for ge
   - On successful load, the load modal closes and a **preview/confirm** modal opens showing the extracted text in a read-only text area with **Back** and **Confirm** actions.
     - **Confirm** stores the document as loaded context and closes the modal.
     - **Back** discards the preview and returns to the load modal.
-- **Document loaded:** the button uses a different (highlighted) color and its label shows the start of the loaded file name or URL.
-  - Clicking the button opens a modal to **remove** the loaded document. Confirming removal clears the loaded document (and persisted context).
+- **Document loaded:** the button uses a highlighted color and shows:
+  - 1st line: document type/title (`CV` or `Job ad`)
+  - 2nd line: document filename/source (truncated if long)
+  - 3rd line: status message (e.g. `Loaded. Click to manage.`)
+  - Clicking the button opens a modal to **remove** the loaded document. Confirming removal clears the loaded document (and persisted context) and returns the button to its unloaded state.
 
 ### Writing samples (BL-002)
 - The user can load writing samples as a reference for writing style via either (1) the folder selection button (opens the system folder picker; the app loads all supported files from the selected folder) or (2) a local folder path (advanced), or (3) one or more web URLs (separated by newlines, commas, or whitespace). Supported formats are the same (PDF, HTML, or plain text).
