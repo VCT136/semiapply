@@ -31,8 +31,14 @@ Loads a job ad, a CV, and writing samples into the application as context for ge
   - Clicking the button opens a modal to **remove** the loaded document. Confirming removal clears the loaded document (and persisted context) and returns the button to its unloaded state.
 
 ### Writing samples (BL-002)
-- The user can load writing samples as a reference for writing style via either (1) the folder selection button (opens the system folder picker; the app loads all supported files from the selected folder) or (2) a local folder path (advanced), or (3) one or more web URLs (separated by newlines, commas, or whitespace). Supported formats are the same (PDF, HTML, or plain text).
-- Loaded writing samples are listed in the UI with their source/type and extracted text.
+- The web UI provides a single **Writing samples** button (matching the CV/Job ad document buttons).
+  - **No samples loaded:** the button shows the title and a status message. Clicking opens a modal to load samples.
+  - **Samples loaded:** the button uses the loaded (green) highlight and shows a brief summary (e.g. number of samples loaded). Clicking opens the same modal to manage samples.
+- In the modal, the user can load/adjust writing samples by:
+  - Selecting a local folder via the system folder picker, which loads supported files from that folder immediately (replacing any currently loaded writing samples), or
+  - Providing different web URL(s) (separated by newlines, commas, or whitespace) and clicking **Load URL(s)** to load from those URLs (replacing any currently loaded writing samples).
+  Supported formats are the same (PDF, HTML, or plain text).
+- The modal also allows removing all loaded writing samples, returning the button to its unloaded state.
 
 ### Extraction and persistence
 - URL loading fetches the resource and extracts readable text.
@@ -52,4 +58,4 @@ Loads a job ad, a CV, and writing samples into the application as context for ge
 ## Implementation
 - `app/main.py`: FastAPI routes and session-backed UI rendering/state (job, CV, writing samples), including preview/confirm/cancel/remove endpoints for job/CV modal flow.
 - `app/loaders.py`: document source handling and text extraction (files, URLs, folders, multiple URLs).
-- `app/templates/index.html`, `app/static/style.css`: web UI, modal interactions, and client-side loading flow for job/CV.
+- `app/templates/index.html`, `app/static/style.css`: web UI, modal interactions, and client-side loading/management flows for job/CV and writing samples.

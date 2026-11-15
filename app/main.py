@@ -654,7 +654,7 @@ async def load_samples_get():
     return RedirectResponse(url="/", status_code=303)
 
 
-@app.post("/load/samples", response_class=HTMLResponse)
+@app.post("/load/samples")
 async def load_samples(
     request: Request,
     samples_urls: str = Form(default=""),
@@ -665,11 +665,26 @@ async def load_samples(
     samples_urls_clean = (samples_urls or "").strip()
     samples_folder_clean = (samples_folder or "").strip()
 
+    wants_json = "application/json" in (request.headers.get("accept") or "") or request.headers.get("x-requested-with") == "fetch"
+
+    def _resp(payload: dict[str, Any], status_code: int = 200):
+        if wants_json:
+            resp = JSONResponse(payload, status_code=status_code)
+        else:
+            # Fallback for legacy/non-JS form posts
+            if status_code >= 400:
+                resp = _render_index(request, sid=sid, set_cookie=set_cookie, samples_error=payload.get("error"))
+            else:
+                resp = _render_index(request, sid=sid, set_cookie=set_cookie)
+        if set_cookie:
+            resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+        return resp
+
     try:
         if samples_folder_clean and samples_urls_clean:
             raise ValueError("Provide either a local folder or URL(s), not both.")
         if not samples_folder_clean and not samples_urls_clean:
-            raise ValueError("Provide a local folder (use the button or enter path) or one or more web URL(s) for writing samples.")
+            raise ValueError("Provide a local folder (use the button) or one or more web URL(s) for writing samples.")
 
         loaded: list[LoadedDocument] = []
         if samples_folder_clean:
@@ -681,13 +696,28 @@ async def load_samples(
             urls = re.split(r"[\n,\s]+", samples_urls_clean)
             loaded = await load_documents_from_urls(urls, label_prefix="Writing sample")
 
-        if not isinstance(session.get("samples"), list):
-            session["samples"] = []
-        session["samples"].extend(loaded)
+        # Replace existing samples when (re)loading via the modal to support adjustment.
+        session["samples"] = loaded
         save_session_context(session)
-        return _render_index(request, sid=sid, set_cookie=set_cookie)
+        return _resp({
+            "ok": True,
+            "count": len(loaded),
+            "samples": _docs_context(loaded),
+        })
     except Exception as exc:  # noqa: BLE001 - show user-facing load errors
-        return _render_index(request, sid=sid, set_cookie=set_cookie, samples_error=str(exc))
+        return _resp({"ok": False, "error": str(exc)}, status_code=400)
+
+
+@app.post("/load/samples/remove")
+async def load_samples_remove(request: Request):
+    sid, set_cookie = _get_session_id(request)
+    session = _ensure_session(sid)
+    session["samples"] = []
+    save_session_context(session)
+    resp = JSONResponse({"ok": True})
+    if set_cookie:
+        resp.set_cookie(SESSION_COOKIE, sid, httponly=True, samesite="lax")
+    return resp
 
 
 

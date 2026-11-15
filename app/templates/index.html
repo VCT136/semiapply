@@ -130,59 +130,43 @@
       <section class="grid">
         <article class="card">
           <h2>Writing samples (style reference)</h2>
-          <p>Load motivation/cover letters or other writing samples to guide tone and style.</p>
-          <form action="/load/samples" method="post">
-            <label for="samples_folder">Local folder</label>
-            <div style="display:flex; gap:8px; align-items:center;">
-              <input id="samples_folder" name="samples_folder" type="text" placeholder="C:\\path\\to\\writing-samples" style="flex:1;" />
-              <button type="button" id="pick_folder_btn">Select folder...</button>
+          {% set samples_count = samples|length if samples else 0 %}
+          <button type="button" id="samples_doc_btn" class="doc-btn{% if samples_count > 0 %} loaded{% endif %}" data-doc="samples">
+            <span class="doc-btn-title">Writing samples</span>
+            <span class="doc-btn-filename{% if samples_count == 0 %} hidden{% endif %}" id="samples_doc_info">{% if samples_count > 0 %}{{ samples_count }} sample(s) loaded{% endif %}</span>
+            <span class="doc-btn-status" id="samples_status">{% if samples_count > 0 %}Loaded. Click to manage.{% else %}No writing samples loaded.{% endif %}</span>
+          </button>
+
+          <div id="samples_modal" class="modal hidden" aria-hidden="true">
+            <div class="modal-content">
+              <h3>Writing samples</h3>
+              <p class="hint">Load motivation/cover letters or other writing samples to guide tone and style. Loading replaces any currently loaded samples.</p>
+              <p class="hint{% if samples_count == 0 %} hidden{% endif %}" id="samples_current_info">{% if samples_count > 0 %}Currently loaded: {{ samples_count }} sample(s).{% endif %}</p>
+
+              <label>Local folder</label>
+              <div>
+                <button type="button" id="pick_folder_btn">Select folder...</button>
+              </div>
+              <p class="hint">Selecting a folder loads its writing samples immediately (replacing current samples).</p>
+
+              <div class="or">or</div>
+
+              <label for="samples_urls">Web URL(s)</label>
+              <textarea id="samples_urls" name="samples_urls" rows="4" placeholder="https://example.com/letter1&#10;https://example.com/letter2"></textarea>
+              <p class="hint">Separate multiple URLs with new lines, commas, or spaces.</p>
+              <div>
+                <button type="button" id="samples_load_btn">Load URL(s)</button>
+              </div>
+
+              <div id="samples_error" class="error hidden" role="alert"></div>
+              <div class="modal-actions">
+                <button type="button" id="samples_remove_btn" class="danger{% if samples_count == 0 %} hidden{% endif %}">Remove loaded samples</button>
+                <button type="button" class="secondary" data-close="samples_modal">Close</button>
+              </div>
             </div>
-            <p class="hint">Use the button to open the system folder selection; the selected folder path is stored and files are loaded from that path when submitting.</p>
-
-            <div class="or">or</div>
-
-            <label for="samples_urls">Web URL(s)</label>
-            <textarea id="samples_urls" name="samples_urls" rows="4" placeholder="https://example.com/letter1&#10;https://example.com/letter2"></textarea>
-
-            <button type="submit">Load writing samples</button>
-          </form>
-          <script>
-            const pickBtn = document.getElementById('pick_folder_btn');
-            const folderInput = document.getElementById('samples_folder');
-            if (pickBtn && folderInput) {
-              pickBtn.addEventListener('click', async () => {
-                try {
-                  const resp = await fetch('/pick/folder');
-                  if (resp.ok) {
-                    const data = await resp.json();
-                    if (data.path) {
-                      folderInput.value = data.path;
-                    }
-                  }
-                } catch (e) {
-                  // ignore
-                }
-              });
-            }
-          </script>
+          </div>
           {% if samples_error %}
           <div class="error" role="alert">{{ samples_error }}</div>
-          {% endif %}
-          {% if samples and samples|length > 0 %}
-          <div class="result">
-            <h3>Loaded ({{ samples|length }})</h3>
-            {% for s in samples %}
-            <div class="sample">
-              <dl>
-                <dt>Label</dt><dd>{{ s.label }}</dd>
-                <dt>Source</dt><dd>{{ s.source }}</dd>
-                <dt>Type</dt><dd>{{ s.kind }}</dd>
-              </dl>
-              <label for="sample_text_{{ loop.index }}">Extracted text</label>
-              <textarea id="sample_text_{{ loop.index }}" readonly rows="12">{{ s.text }}</textarea>
-            </div>
-            {% endfor %}
-          </div>
           {% endif %}
         </article>
       </section>
@@ -603,6 +587,103 @@
 
         setupDoc('job', 'Job ad');
         setupDoc('cv', 'CV');
+
+        (function setupSamples(){
+          const btn = qs('#samples_doc_btn');
+          const modal = 'samples_modal';
+          const pickBtn = qs('#pick_folder_btn');
+          const urlsInput = qs('#samples_urls');
+          const loadBtn = qs('#samples_load_btn');
+          const removeBtn = qs('#samples_remove_btn');
+          const infoEl = qs('#samples_doc_info');
+          const statusEl = qs('#samples_status');
+          const currentInfo = qs('#samples_current_info');
+          let loadedCount = {{ samples|length if samples else 0 }};
+
+          function setLoaded(count){
+            loadedCount = count || 0;
+            const text = loadedCount + ' sample(s) loaded';
+            if(btn) btn.classList.toggle('loaded', loadedCount > 0);
+            if(infoEl){ infoEl.textContent = text; infoEl.classList.toggle('hidden', loadedCount <= 0); }
+            if(statusEl){ statusEl.textContent = loadedCount > 0 ? 'Loaded. Click to manage.' : 'No writing samples loaded.'; }
+            if(currentInfo){ currentInfo.textContent = 'Currently loaded: ' + loadedCount + ' sample(s).'; currentInfo.classList.toggle('hidden', loadedCount <= 0); }
+            if(removeBtn){ removeBtn.classList.toggle('hidden', loadedCount <= 0); }
+          }
+
+          async function loadSamples(folder, urls){
+            const fd = new FormData();
+            fd.append('samples_folder', folder || '');
+            fd.append('samples_urls', urls || '');
+            const resp = await fetch('/load/samples', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'fetch', 'Accept': 'application/json' } });
+            const data = await resp.json().catch(() => ({ ok: false, error: 'Invalid server response' }));
+            if(!resp.ok || data.ok === false){
+              showError('samples_error', data.error || 'Failed to load writing samples.');
+              return false;
+            }
+            if(urlsInput) urlsInput.value = '';
+            setLoaded(data.count || 0);
+            showError('samples_error', '');
+            hideModal(modal);
+            return true;
+          }
+
+          if(btn){
+            btn.addEventListener('click', () => {
+              showError('samples_error', '');
+              showModal(modal);
+            });
+          }
+          if(pickBtn){
+            pickBtn.addEventListener('click', async () => {
+              pickBtn.disabled = true;
+              showError('samples_error', '');
+              try {
+                const resp = await fetch('/pick/folder');
+                if (resp.ok) {
+                  const data = await resp.json();
+                  if (data && data.path) {
+                    await loadSamples(data.path, '');
+                  }
+                }
+              } catch (e) { /* ignore */ }
+              finally { pickBtn.disabled = false; }
+            });
+          }
+          if(loadBtn){
+            loadBtn.addEventListener('click', async () => {
+              const urls = (urlsInput && urlsInput.value || '').trim();
+              if(!urls){ showError('samples_error', 'Provide one or more web URL(s) to load.'); return; }
+              loadBtn.disabled = true;
+              try {
+                await loadSamples('', urls);
+              } finally {
+                loadBtn.disabled = false;
+              }
+            });
+          }
+          if(removeBtn){
+            removeBtn.addEventListener('click', async () => {
+              removeBtn.disabled = true;
+              try {
+                const resp = await fetch('/load/samples/remove', { method: 'POST', headers: { 'X-Requested-With': 'fetch', 'Accept': 'application/json' } });
+                const data = await resp.json().catch(() => ({ ok: false, error: 'Invalid server response' }));
+                if(!resp.ok || data.ok === false){
+                  showError('samples_error', data.error || 'Failed to remove writing samples.');
+                  return;
+                }
+                if(urlsInput) urlsInput.value = '';
+                setLoaded(0);
+                showError('samples_error', '');
+                hideModal(modal);
+              } finally {
+                removeBtn.disabled = false;
+              }
+            });
+          }
+          document.querySelectorAll('[data-close="'+modal+'"]').forEach(b=>b.addEventListener('click', ()=>hideModal(modal)));
+          const m = qs('#'+modal);
+          if(m){ m.addEventListener('click', (e)=>{ if(e.target === m){ hideModal(modal); } }); }
+        })();
       })();
     </script>
   </body>
