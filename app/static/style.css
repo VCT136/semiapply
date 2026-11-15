@@ -12,8 +12,12 @@
   --text: #e5e7eb;
   --muted: #9ca3af;
   --border: #4e4653;
-  --accent: #6e3680;
-  --accent-hover: #8637a0;
+  --accent: #50346b;
+  --accent-hover: #6c348b;
+  --secondary: #353d49;
+  --secondary-hover: #4a515c;
+  --danger: #962f2f;
+  --danger-hover: #b91c1c;
   --doc-loaded: #287032;
   --doc-loaded-hover: #2d913a;
   --error-bg: #3b1216;
@@ -55,27 +59,37 @@ header p, footer p { color: var(--muted); }
 }
 .card {
   background: var(--card);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 18px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  box-shadow: 0 4px 8px 2px #0000003d;
 }
 h2 { margin-top: 0; }
 form { display: grid; gap: 8px; }
 label { font-size: 0.95rem; }
-input[type="url"], input[type="text"], input[type="file"], textarea, select {
+input {
+  font: inherit;
+}
+input[type="url"], input[type="text"], textarea, select {
   width: 100%;
   padding: 10px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  font: inherit;
   color: var(--text);
-  background: #1f2937;
+  background: #0b070e;
+}
+input[type="url"]:focus, input[type="text"]:focus, textarea:focus, select:focus {
+  color: #d087ec;
+}
+input[type="file"] { width: 100% }
+::file-selector-button {
+  font-family: inherit;
+  font-weight: bold;
+  border-radius: 6px;
 }
 textarea { font-family: ui-monospace, Consolas, monospace; font-size: 0.9rem; resize: vertical; }
 textarea[readonly] { caret-color: transparent; cursor: default; }
 
-button {
-  margin-top: 4px;
+button, input[type="file"] {
   padding: 10px 14px;
   border: 2px solid var(--accent);
   border-radius: 6px;
@@ -87,16 +101,27 @@ button {
   transition-property: box-shadow;
   transition-duration: 0.3s;
 }
-button:hover {
+button:hover, input[type="file"]:hover {
   border-color: var(--accent-hover);
   box-shadow: inset 8px 8px 20px var(--accent-hover), inset -8px -8px 20px var(--accent-hover);
 }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
-button.required { border-color: red }
-button.secondary { background: #374151; color: var(--text); border: 1px solid var(--border); }
-button.secondary:hover { background: #4b5563; }
-button.danger { background: #b91c1c; }
-button.danger:hover { background: #991b1b; }
+button:disabled { opacity: 0.5; cursor: not-allowed; text-decoration: line-through; }
+button.secondary {
+  border-color: var(--secondary);
+  box-shadow: inset 8px 8px 20px var(--secondary), inset -8px -8px 20px var(--secondary);
+}
+button.secondary:hover {
+  border-color: var(--secondary-hover);
+  box-shadow: inset 8px 8px 20px var(--secondary-hover), inset -8px -8px 20px var(--secondary-hover);
+ }
+button.danger {
+  border-color: var(--danger);
+  box-shadow: inset 8px 8px 20px var(--danger), inset -8px -8px 20px var(--danger);
+}
+button.danger:hover {
+  border-color: var(--danger-hover);
+  box-shadow: inset 8px 8px 20px var(--danger-hover), inset -8px -8px 20px var(--danger-hover);
+}
 .doc-btn { width: 100%; font-size: 1rem; padding: 14px; }
 .doc-btn.loaded {
   border-color: var(--doc-loaded);
@@ -119,7 +144,7 @@ button.danger:hover { background: #991b1b; }
   z-index: 1000;
 }
 .modal.hidden { display: none; }
-.modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 18px; width: 100%; max-width: 560px; max-height: 90vh; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
+.modal-content { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; width: 100%; max-width: 560px; max-height: 90vh; overflow: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.15); }
 .modal-content.modal-large { max-width: 800px; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
 .modal .row { margin-top: 4px; }
@@ -151,8 +176,8 @@ code { font-family: ui-monospace, Consolas, monospace; }
 
 .chat-card { grid-column: 1 / -1; }
 .chat-form { gap: 10px; }
-.chat-history { border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: #0b1220; max-height: 320px; overflow: auto; }
+.chat-history { border: 1px solid var(--border); border-radius: 6px; padding: 10px; background: #222124; max-height: 320px; overflow: auto; }
 .chat-history h3 { margin: 0 0 8px; font-size: 1rem; }
 .chat-message { margin: 8px 0; padding: 8px; border-radius: 6px; white-space: pre-wrap; }
-.chat-user { background: #10243e; border: 1px solid #1e3a5f; }
+.chat-user { background: #24103e; border: 1px solid #3c1e5f; }
 .chat-assistant { background: #0f2a1d; border: 1px solid #14532d; }
