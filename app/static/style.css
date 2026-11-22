@@ -76,9 +76,7 @@ input[type="url"], input[type="text"], textarea, select {
   border-radius: 6px;
   color: var(--text);
   background: #0b070e;
-}
-input[type="url"]:focus, input[type="text"]:focus, textarea:focus, select:focus {
-  color: #d087ec;
+  font-family: inherit;
 }
 input[type="file"] { width: 100% }
 ::file-selector-button {
