@@ -21,19 +21,43 @@ Early development. See `BACKLOG.md`, `TODO.md`, and `DONE.md`.
 - FastAPI + Jinja2 web UI
 - OpenCode CLI integration for generation: uses installed `opencode` (`opencode models`, `opencode run`) with model selection in the app. Revisions/chat UI planned (BL-004).
 
-## Run (Windows)
+## Run
+
+### Windows (Command Prompt)
 ```bat
 run.bat
 ```
-This creates `.venv` if needed, installs dependencies (`pip install -e .`), and starts the app.
+
+### Windows (PowerShell)
+```powershell
+.\run.ps1
+```
+
+### Linux
+```bash
+./run.sh
+```
+
+These scripts create `.venv` if needed, install dependencies (`pip install -e .`), and start the app.
 
 ## Manual setup/run
+
+### Windows (PowerShell)
 ```powershell
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 pip install -e .
 python -m uvicorn app.main:app --reload
 ```
+
+### Linux
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .
+python -m uvicorn app.main:app --reload
+```
+
 Then open http://127.0.0.1:8000/
 
 

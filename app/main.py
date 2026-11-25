@@ -3,10 +3,8 @@ from __future__ import annotations
 import asyncio
 import secrets
 import threading
-import tkinter as tk
 from dataclasses import asdict
 from pathlib import Path
-from tkinter import filedialog
 from typing import Any
 
 from fastapi import FastAPI, File, Form, Request, UploadFile
@@ -221,6 +219,21 @@ async def health():
 
 @app.get("/pick/folder")
 async def pick_folder():
+    try:
+        import tkinter as tk
+        from tkinter import filedialog
+    except Exception as exc:  # noqa: BLE001
+        return JSONResponse(
+            {
+                "path": None,
+                "error": (
+                    "Folder picker unavailable: tkinter is not installed or not configured "
+                    f"({exc}). Enter the path manually."
+                ),
+            },
+            status_code=501,
+        )
+
     try:
         root = tk.Tk()
         root.withdraw()

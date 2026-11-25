@@ -1,6 +1,7 @@
 # DONE
 
 ## Completed
+- [x] Added alternative run scripts: `run.sh` for Linux and `run.ps1` for PowerShell; updated `README.md` run/manual setup instructions.
 - [x] **DEV-005 / BL-003:** Updated generation UI to use separate actions per document.
   - Replaced document selection checkboxes and the single "Generate" button with two buttons: "Generate customized CV" and "Generate motivation letter" in `app/templates/index.html`.
   - Updated client-side generation flow to submit the selected document type and disable both buttons while a generation job is running.
